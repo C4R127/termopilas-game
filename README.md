@@ -87,22 +87,20 @@ tests/                     38 pruebas: voz, órdenes, oleadas, combate y partida
 - **HUD y menús en HTML.** Así son accesibles con teclado y lectores de pantalla y se leen bien a cualquier tamaño. El lienzo usa una resolución lógica de 320 × 180, ampliada sin suavizado. El factor de zoom es entero cuando cabe y fraccionario cuando no, y siempre se mantiene la proporción 16:9.
 - **Sonidos.** Los efectos son tonos breves sintetizados con Web Audio y cada uno tiene un aviso visual equivalente. No se usa música (no se exige en la beta).
 
-## Criterios de aceptación del Avance 1 (sección 11.2)
+## Criterios de aceptación del Avance 1
 
 | Criterio | Estado | Cómo se comprobó |
 |---|---|---|
-| No hay bloqueos críticos al iniciar, jugar o reiniciar las tres oleadas | ✅ | Partidas en el navegador sin errores de consola y bots que juegan las tres oleadas (`npm test`) |
-| La partida se gana o se pierde con un ciclo claro y luego se reinicia | ✅ | Victoria y derrota en las pruebas; derrota y «Reintentar» en el navegador |
-| Las cuatro órdenes cambian el estado visual y producen su efecto | ✅ | `tests/commands.test.js` y `tests/battle.test.js`, más una prueba manual |
-| Las órdenes de voz reconocidas reciben confirmación visible | ✅* | Se probó con un reconocedor simulado dentro de la página; no se probó con un micrófono real |
-| La beta se completa con teclado y botones sin micrófono | ✅ | Bot «atento» (solo teclado) y prueba manual con teclas y botones |
-| La interfaz informa del estado del micrófono, los errores y la última orden | ✅ | Probado con el permiso denegado, frases desconocidas y órdenes rechazadas |
-| No se guarda audio ni se envían datos a un backend propio | ✅ | Solo se procesa texto; no hay servidor |
-| Los sprites se escalan con bordes nítidos y la partida es estable | ✅ | `pixelArt` activado y `image-rendering: pixelated`; probado a 1280×760 y 1024×640 |
+| No hay bloqueos críticos al iniciar, jugar o reiniciar las tres oleadas | Cumplido | Partidas en el navegador sin errores de consola y bots que juegan las tres oleadas (`npm test`) |
+| La partida se gana o se pierde con un ciclo claro y luego se reinicia | Cumplido | Victoria y derrota en las pruebas; derrota y «Reintentar» en el navegador |
+| Las cuatro órdenes cambian el estado visual y producen su efecto | Cumplido | `tests/commands.test.js` y `tests/battle.test.js`, más una prueba manual |
+| Las órdenes de voz reconocidas reciben confirmación visible | Cumplido* | Se probó con un reconocedor simulado dentro de la página; no se probó con un micrófono real |
+| La beta se completa con teclado y botones sin micrófono | Cumplido | Bot «atento» (solo teclado) y prueba manual con teclas y botones |
+| La interfaz informa del estado del micrófono, los errores y la última orden | Cumplido | Probado con el permiso denegado, frases desconocidas y órdenes rechazadas |
+| No se guarda audio ni se envían datos a un backend propio | Cumplido | Solo se procesa texto; no hay servidor |
+| Los sprites se escalan con bordes nítidos y la partida es estable | Cumplido | `pixelArt` activado y `image-rendering: pixelated`; probado a 1280×760 y 1024×640 |
 
 \* Falta probarlo con un micrófono real en Chrome o Edge.
-
-Pruebas funcionales de la sección 11.1 que corresponden a la beta: T-01 a T-10. La T-11 (reducir efectos y desactivar audio desde los ajustes) es de la versión final; en la beta solo existe la tecla M para silenciar.
 
 ## Fuera del alcance de esta entrega (para la versión final)
 
