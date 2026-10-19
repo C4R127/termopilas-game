@@ -1,0 +1,22 @@
+{
+  "name": "termopilas-game",
+  "version": "0.1.0-beta",
+  "private": true,
+  "description": "300: El Paso de las Termópilas — estrategia táctica 2D en pixel art con comandos de voz (Avance 1, beta)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "simulate": "node scripts/simulate.mjs",
+    "art": "node tools/art/build.mjs"
+  },
+  "dependencies": {
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "vite": "^7.3.7",
+    "vitest": "^3.2.7"
+  }
+}
