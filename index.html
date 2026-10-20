@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Estrategia táctica 2D en pixel art inspirada en la batalla de las Termópilas (480 a. C.), con órdenes por voz, teclado o botones." />
+    <title>300: El Paso de las Termópilas · Beta</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232a211a'/%3E%3Ccircle cx='16' cy='16' r='11' fill='%23c2873a' stroke='%238a5a26' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%239e2b22'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="/termopilas-game/assets/index-Bdc8XxZj.js"></script>
+    <link rel="modulepreload" crossorigin href="/termopilas-game/assets/phaser-DFK5Ua9d.js">
+    <link rel="stylesheet" crossorigin href="/termopilas-game/assets/index-Jvk0MkgV.css">
+  </head>
+  <body>
+    <div id="app" class="app" data-scene="loading">
+      <!-- Barra superior: oleada, formación, voz y pausa (sección 6.2). -->
+      <header id="hud-top" class="hud-top" hidden>
+        <section class="hud-block hud-wave" aria-label="Progreso de campaña">
+          <div class="hud-label">Oleada</div>
+          <div class="hud-big"><b data-hud="wave">1</b><span>/<span data-hud="waves">3</span></span></div>
+          <div class="bar bar-wave" aria-hidden="true"><span data-hud="waveBar"></span></div>
+          <div class="hud-sub" data-hud="waveName">—</div>
+        </section>
+
+        <section class="hud-block hud-formation" aria-label="Estado de la formación">
+          <div class="hud-mode">
+            <i class="icon" data-hud="modeIcon" data-icon="1" aria-hidden="true"></i>
+            <div>
+              <div class="hud-label">Formación</div>
+              <b data-hud="mode" role="status" aria-live="polite">Lanzas</b>
+            </div>
+          </div>
+          <div class="meters">
+            <label class="meter" data-meter="cohesion"><span>Cohesión</span><span class="bar"><span data-hud="cohesionBar"></span></span><b data-hud="cohesion">100</b></label>
+            <label class="meter" data-meter="stamina"><span>Resistencia</span><span class="bar"><span data-hud="staminaBar"></span></span><b data-hud="stamina">100</b></label>
+            <label class="meter" data-meter="morale"><span>Moral</span><span class="bar"><span data-hud="moraleBar"></span></span><b data-hud="morale">70</b></label>
+          </div>
+          <div class="hud-breaches" title="Brechas en la línea">Brechas <b data-hud="breaches">0</b>/<span data-hud="maxBreaches">4</span></div>
+        </section>
+
+        <section class="hud-block hud-voice" aria-label="Comandos de voz">
+          <button id="mic-btn" class="mic-btn" type="button" aria-pressed="false" data-status="off" title="Activar o desactivar el micrófono (V)">
+            <i class="icon" data-icon="5" aria-hidden="true"></i><span class="mic-text">Voz</span><kbd>V</kbd>
+          </button>
+          <div class="voice-info">
+            <div data-hud="micStatus" class="mic-status" role="status" aria-live="polite">Micrófono apagado</div>
+            <div data-hud="lastCommand" class="last-command" role="status" aria-live="polite">Última orden: —</div>
+          </div>
+        </section>
+
+        <button id="pause-btn" class="pause-btn" type="button" title="Pausa (P o Esc)">
+          <i class="icon" data-icon="6" aria-hidden="true"></i><span>Pausa</span><kbd>P</kbd>
+        </button>
+      </header>
+
+      <main id="stage" class="stage">
+        <div id="game" class="game"></div>
+        <!-- Banda de avisos: amenaza siguiente, orden ejecutada, enfriamientos. -->
+        <div id="alerts" class="alerts" role="status" aria-live="assertive"></div>
+        <section id="screen" class="screen" hidden></section>
+        <p id="loading" class="loading">Preparando la falange…</p>
+      </main>
+
+      <!-- Barra inferior: las cuatro órdenes como controles alternativos. -->
+      <footer id="hud-bottom" class="hud-bottom" hidden>
+        <button class="cmd" type="button" data-cmd="SHIELDS" aria-pressed="false"><i class="icon" data-icon="0" aria-hidden="true"></i><span class="cmd-name">Escudos</span><kbd>1</kbd><small data-state>Bloquea flechas</small></button>
+        <button class="cmd" type="button" data-cmd="SPEARS" aria-pressed="true"><i class="icon" data-icon="1" aria-hidden="true"></i><span class="cmd-name">Lanzas</span><kbd>2</kbd><small data-state>Ataque</small></button>
+        <button class="cmd" type="button" data-cmd="PUSH" aria-pressed="false"><i class="icon" data-icon="2" aria-hidden="true"></i><span class="cmd-name">Empujen</span><kbd>3</kbd><small data-state>Empuje listo</small><span class="cooldown" aria-hidden="true"></span></button>
+        <button class="cmd" type="button" data-cmd="RELIEF" aria-pressed="false"><i class="icon" data-icon="3" aria-hidden="true"></i><span class="cmd-name">Relevo</span><kbd>4</kbd><small data-state>Relevo disponible</small><span class="cooldown" aria-hidden="true"></span></button>
+      </footer>
+    </div>
+    <noscript>Este juego necesita JavaScript.</noscript>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "chars": " !?-+.,:%/0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  "width": 4,
+  "height": 6,
+  "perRow": 16
+}
