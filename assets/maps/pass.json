@@ -1,0 +1,760 @@
+{
+  "type": "map",
+  "version": "1.10",
+  "tiledversion": "1.10.2",
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "width": 20,
+  "height": 3,
+  "tilewidth": 16,
+  "tileheight": 16,
+  "infinite": false,
+  "nextlayerid": 4,
+  "nextobjectid": 24,
+  "properties": [
+    {
+      "name": "descripcion",
+      "type": "string",
+      "value": "Suelo del paso de las Termópilas (y 112–160 en el lienzo de 320 × 180)"
+    }
+  ],
+  "tilesets": [
+    {
+      "firstgid": 1,
+      "name": "pass-tiles",
+      "image": "../images/tilesets/pass-tiles.png",
+      "imagewidth": 64,
+      "imageheight": 48,
+      "tilewidth": 16,
+      "tileheight": 16,
+      "tilecount": 12,
+      "columns": 4,
+      "margin": 0,
+      "spacing": 0,
+      "tiles": [
+        {
+          "id": 0,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "borde-superior-a"
+            }
+          ]
+        },
+        {
+          "id": 1,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "borde-superior-b"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "borde-superior-c"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "camino-a"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "camino-b"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "camino-piedras"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "acantilado-a"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "acantilado-b"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "acantilado-peligro-a"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "acantilado-peligro-b"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "acantilado-peligro-inicio"
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "properties": [
+            {
+              "name": "nombre",
+              "type": "string",
+              "value": "acantilado-peligro-fin"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "layers": [
+    {
+      "id": 1,
+      "name": "suelo",
+      "type": "tilelayer",
+      "x": 0,
+      "y": 0,
+      "offsetx": 0,
+      "offsety": 112,
+      "width": 20,
+      "height": 3,
+      "opacity": 1,
+      "visible": true,
+      "data": [
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        3,
+        1,
+        3,
+        3,
+        1,
+        1,
+        2,
+        3,
+        1,
+        1,
+        1,
+        2,
+        3,
+        5,
+        4,
+        5,
+        4,
+        5,
+        5,
+        4,
+        4,
+        5,
+        4,
+        4,
+        4,
+        6,
+        4,
+        4,
+        4,
+        6,
+        6,
+        6,
+        4,
+        7,
+        7,
+        7,
+        7,
+        8,
+        8,
+        11,
+        9,
+        12,
+        8,
+        7,
+        7,
+        7,
+        7,
+        7,
+        7,
+        7,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "id": 2,
+      "name": "decoracion",
+      "type": "objectgroup",
+      "draworder": "topdown",
+      "x": 0,
+      "y": 0,
+      "opacity": 1,
+      "visible": true,
+      "objects": [
+        {
+          "id": 1,
+          "rotation": 0,
+          "visible": true,
+          "name": "muro-focense",
+          "type": "decoracion",
+          "x": 4,
+          "y": 130,
+          "width": 32,
+          "height": 28,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-phocian-wall"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "rotation": 0,
+          "visible": true,
+          "name": "piedras",
+          "type": "decoracion",
+          "x": 150,
+          "y": 118,
+          "width": 12,
+          "height": 8,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-rocks"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "rotation": 0,
+          "visible": true,
+          "name": "piedras",
+          "type": "decoracion",
+          "x": 206,
+          "y": 117,
+          "width": 12,
+          "height": 8,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-rocks"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "rotation": 0,
+          "visible": true,
+          "name": "piedras",
+          "type": "decoracion",
+          "x": 268,
+          "y": 119,
+          "width": 12,
+          "height": 8,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-rocks"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "rotation": 0,
+          "visible": true,
+          "name": "piedras",
+          "type": "decoracion",
+          "x": 300,
+          "y": 158,
+          "width": 12,
+          "height": 8,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-rocks"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "rotation": 0,
+          "visible": true,
+          "name": "columna-caida",
+          "type": "decoracion",
+          "x": 30,
+          "y": 121,
+          "width": 14,
+          "height": 8,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-column"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "rotation": 0,
+          "visible": true,
+          "name": "hierba",
+          "type": "decoracion",
+          "x": 118,
+          "y": 117,
+          "width": 8,
+          "height": 6,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-grass"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "rotation": 0,
+          "visible": true,
+          "name": "hierba",
+          "type": "decoracion",
+          "x": 176,
+          "y": 116,
+          "width": 8,
+          "height": 6,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-grass"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "rotation": 0,
+          "visible": true,
+          "name": "hierba",
+          "type": "decoracion",
+          "x": 244,
+          "y": 117,
+          "width": 8,
+          "height": 6,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-grass"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "rotation": 0,
+          "visible": true,
+          "name": "hierba",
+          "type": "decoracion",
+          "x": 290,
+          "y": 116,
+          "width": 8,
+          "height": 6,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-grass"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "rotation": 0,
+          "visible": true,
+          "name": "hierba",
+          "type": "decoracion",
+          "x": 8,
+          "y": 152,
+          "width": 8,
+          "height": 6,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-grass"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "rotation": 0,
+          "visible": true,
+          "name": "hierba",
+          "type": "decoracion",
+          "x": 62,
+          "y": 152,
+          "width": 8,
+          "height": 6,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-grass"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "rotation": 0,
+          "visible": true,
+          "name": "hierba",
+          "type": "decoracion",
+          "x": 176,
+          "y": 152,
+          "width": 8,
+          "height": 6,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-grass"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "rotation": 0,
+          "visible": true,
+          "name": "hierba",
+          "type": "decoracion",
+          "x": 252,
+          "y": 152,
+          "width": 8,
+          "height": 6,
+          "properties": [
+            {
+              "name": "textura",
+              "type": "string",
+              "value": "obj-grass"
+            },
+            {
+              "name": "fotograma",
+              "type": "int",
+              "value": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "logica",
+      "type": "objectgroup",
+      "draworder": "topdown",
+      "x": 0,
+      "y": 0,
+      "opacity": 1,
+      "visible": false,
+      "objects": [
+        {
+          "id": 15,
+          "rotation": 0,
+          "visible": true,
+          "name": "carril-0",
+          "type": "carril",
+          "x": 92,
+          "y": 124,
+          "width": 0,
+          "height": 0,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 244,
+              "y": 0
+            }
+          ],
+          "properties": [
+            {
+              "name": "fila",
+              "type": "int",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "rotation": 0,
+          "visible": true,
+          "name": "carril-1",
+          "type": "carril",
+          "x": 92,
+          "y": 134,
+          "width": 0,
+          "height": 0,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 244,
+              "y": 0
+            }
+          ],
+          "properties": [
+            {
+              "name": "fila",
+              "type": "int",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "rotation": 0,
+          "visible": true,
+          "name": "carril-2",
+          "type": "carril",
+          "x": 92,
+          "y": 144,
+          "width": 0,
+          "height": 0,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 244,
+              "y": 0
+            }
+          ],
+          "properties": [
+            {
+              "name": "fila",
+              "type": "int",
+              "value": 2
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "rotation": 0,
+          "visible": true,
+          "name": "linea-de-contacto",
+          "type": "linea",
+          "x": 101,
+          "y": 116,
+          "width": 0,
+          "height": 0,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 32
+            }
+          ],
+          "properties": []
+        },
+        {
+          "id": 19,
+          "rotation": 0,
+          "visible": true,
+          "name": "apostadero-arqueros",
+          "type": "linea",
+          "x": 238,
+          "y": 116,
+          "width": 0,
+          "height": 0,
+          "polyline": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 32
+            }
+          ],
+          "properties": []
+        },
+        {
+          "id": 20,
+          "rotation": 0,
+          "visible": true,
+          "name": "aparicion-enemigos",
+          "type": "punto",
+          "x": 336,
+          "y": 134,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "properties": []
+        },
+        {
+          "id": 21,
+          "rotation": 0,
+          "visible": true,
+          "name": "zona-acantilado",
+          "type": "peligro",
+          "x": 96,
+          "y": 139,
+          "width": 48,
+          "height": 10,
+          "properties": [
+            {
+              "name": "fila",
+              "type": "int",
+              "value": 2
+            },
+            {
+              "name": "efecto",
+              "type": "string",
+              "value": "Empujen: los enemigos de la fila 2 caen al mar (la guardia de élite no)"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "rotation": 0,
+          "visible": true,
+          "name": "falange",
+          "type": "zona",
+          "x": 28,
+          "y": 112,
+          "width": 70,
+          "height": 36,
+          "properties": []
+        },
+        {
+          "id": 23,
+          "rotation": 0,
+          "visible": true,
+          "name": "trono-jerjes",
+          "type": "punto",
+          "x": 298,
+          "y": 120,
+          "width": 0,
+          "height": 0,
+          "point": true,
+          "properties": []
+        }
+      ]
+    }
+  ]
+}
