@@ -1,8 +1,8 @@
-# 300: El Paso de las Termópilas — Avance 1 (Beta)
+# 300: El Paso de las Termópilas
 
 Juego web de defensa táctica en 2D con pixel art, inspirado en la batalla de las Termópilas (480 a. C.). Diriges la falange con órdenes de voz, con el teclado o con los botones. Está hecho con HTML5, CSS3, JavaScript (ES Modules), Phaser 3.90 y la Web Speech API.
 
-Esta versión es el **Avance 1 (beta funcional)** del documento *Termopilas_Documentacion_Fases_Beta_Final.docx* (sección 10.2). La versión final (cinco oleadas, arte y audio definitivos, tutorial, ajustes y epílogo ampliado) queda para la segunda entrega.
+Esta es la **versión final** del documento *Termopilas_Documentacion_Fases_Beta_Final.docx* (sección 10.4). Parte del Avance 1 (beta), que ya fue aprobado.
 
 ## Arrancar
 
@@ -10,105 +10,99 @@ Requiere Node.js 20.19+ (o 22.12+).
 
 ```bash
 npm install
-npm run dev        # http://localhost:5195
-npm test           # pruebas unitarias y partidas completas sin interfaz (Vitest)
-npm run simulate   # juega la beta con varios estilos para revisar el balance
+npm run dev        # http://localhost:5195/termopilas-game/
 npm run build      # versión de producción en dist/
-npm run art        # regenera el pixel art provisional en public/assets/
+npm run deploy     # publica dist/ en la rama gh-pages (GitHub Pages)
 ```
 
 Juega desde el servidor de desarrollo, no abriendo `index.html` directamente. Para usar la voz, usa Chrome o Edge.
 
+## Qué incluye la versión final
+
+| Área | Contenido |
+|---|---|
+| Campaña | Cinco oleadas con dificultad creciente y pausas de recuperación (Exploración, Presión combinada, Presión creciente, Guardia de élite y Última línea) y un enfrentamiento final con Jerjes I. |
+| Jefe final: Jerjes I | Fiel a Heródoto, Jerjes no combate en persona: dirige el asalto desde su trono al fondo del paso. Lanza **decretos** con aviso previo, cada uno con una respuesta distinta: «Que las flechas oculten el sol» (tormenta de 3–4 descargas seguidas: hay que sostener los escudos y empujar entre descarga y descarga a quien lleve mucho tiempo trabado), «Látigos de los capitanes» (la infantería se enfurece, más rápida y peligrosa, y solo el empuje la calma) y «Carga de la guardia real» (2–3 guardias de élite a la vez). Su **determinación** (80) baja al resistir decretos, empujar enfurecidos y abatir tropas, y sube con cada brecha. Al cruzar dos umbrales se levanta del trono y los decretos se endurecen y se combinan; a cero, ordena la retirada. Antes del enfrentamiento la falange recupera 50 de cohesión y toda la resistencia. |
+| Identificación por voz | Antes de la primera batalla, Leónidas pregunta cómo dirigirse a quien juega: se responde con la voz («mujer», «hombre» o «prefiero no decirlo») o con botones. El juego entiende la palabra; no deduce nada del sonido de la voz. A partir de ahí Leónidas trata al jugador de «aliada», «aliado» o «estratega». Se guarda solo en el navegador y se cambia en Ajustes. |
+| Enemigos | Cuatro patrones: infantería, arqueros, guardia de élite (arquetipo jugable inspirado en los «Inmortales») y grupos mixtos. |
+| Órdenes | Escudos (anulan las flechas), Lanzas, Empujen (retroceso; al mar junto al acantilado; desequilibra a la élite) y Relevo, con enfriamientos y una orden en espera durante las transiciones. |
+| Tutorial | Nueve pasos guiados por Leónidas con situaciones preparadas: una para cada orden, otra para la guardia de élite y otra para la voz. Es de texto y no se puede perder; las instrucciones habladas son opcionales (botón 🔊 o Ajustes). |
+| Leónidas | Figura de mando en la introducción, el tutorial y la campaña. Da un parte al empezar, la orden de cada oleada y una valoración al superarla, avisa una vez por oleada si la cohesión cae, si hay brecha o si la línea se agota, y despide la campaña. Sus mensajes aparecen en un panel con su retrato y se pueden leer en voz alta. |
+| Arte | Escenario por capas (cielo con nubes, Eubea y el golfo, ladera del Calídromo, el paso y mar animado). Hoplitas con reposo, defensa, ataque, empuje, cansancio, relevo, derrota, victoria y retirada fuera de pantalla (en el relevo, la primera línea cansada sale por la izquierda y entra un hoplita de refresco; en la derrota se retira la reserva). Infantería, arqueros y guardia de élite persas; retrato de Leónidas e iconos. |
+| Audio | Música original sintetizada: tema de menú, tema de batalla que gana capas con la intensidad y remates de victoria y derrota. Efectos para cada evento importante. Hay volúmenes de general, música y efectos, además de un botón de silencio. |
+| Ajustes | Sonido, accesibilidad, teclas reasignables y voz (idioma, precisión exigida y «Probar micrófono»). Se guardan en el navegador. |
+| Accesibilidad | Todo se juega sin voz. También incluye reducir destellos y partículas, alto contraste, texto más grande, avisos de flechas más largos y lectura en voz alta de los mensajes. Los estados no dependen solo del color (icono, texto y animación), y los menús y el HUD son HTML accesibles con teclado. |
+| Resultado | Puntuación, oleadas, tiempo, bajas por tipo, caídos al mar, flechas bloqueadas, órdenes por voz, teclado y botón, porcentaje de frases de voz entendidas y una tabla por oleada. |
+| Historia | Epílogo con una línea temporal (de Maratón a Platea), la distinción entre lo documentado y lo simulado, y las fuentes. |
+
 ## Cómo se juega
 
-La falange ocupa la izquierda del paso y los persas entran por la derecha en tres oleadas. Cada orden cambia el estado de toda la formación:
-
-| Orden | Voz | Tecla | Efecto en la beta |
+| Orden | Voz | Tecla* | Efecto |
 |---|---|---|---|
-| Escudos | «escudos», «falange» | 1 | Bloquea el 100 % de las lluvias de flechas y reduce a la mitad la presión cuerpo a cuerpo. No ataca. |
-| Lanzas | «lanzas» | 2 | Ataca al enemigo más adelantado de cada fila dentro del alcance. Las flechas sí hacen daño. Gasta resistencia. |
-| Empujen | «empujen» | 3 | Hace retroceder a los enemigos cercanos. Los de la fila junto al acantilado caen al mar. Tiene un enfriamiento de 6 s. |
-| Relevo | «relevo», «cambio», «fuego»* | 4 | La reserva sustituye a la primera línea y recupera 45 de resistencia. Tiene un enfriamiento de 10 s. |
-| Pausa / Continuar | «pausa» · «continuar», «reanudar» | P / Esc | Congela la partida. Mientras está en pausa no se aceptan órdenes tácticas. |
+| Escudos | «escudos», «escudo», «falange» | 1 | Bloquea el 100 % de las lluvias de flechas y reduce a la mitad la presión cuerpo a cuerpo. No ataca. |
+| Lanzas | «lanzas», «lanza», «ataquen» | 2 | Ataca al enemigo más adelantado de cada fila. Las flechas sí hacen daño. Gasta resistencia. |
+| Empujen | «empujen», «empujad», «empujar», «empuja» | 3 | Retroceso de los enemigos cercanos. Los de la fila del acantilado caen al mar; la guardia de élite queda desequilibrada (vulnerable a las lanzas). Enfriamiento de 6 s. |
+| Relevo | «relevo», «relevos», «cambio», «fuego»** | 4 | La reserva sustituye a la primera línea y recupera 45 de resistencia. Enfriamiento de 10 s. |
+| Pausa / Continuar | «pausa», «pausar» · «continuar», «reanudar», «seguir» | P / Esc | Congela la partida. En pausa no se aceptan órdenes tácticas. |
 | Micrófono | — | V | Activa o desactiva la escucha. |
-| Sonido | — | M | Silencia o activa los efectos. |
+| Sonido | — | M | Silencia o activa el sonido. |
 
-\* «fuego» es solo un alias de juego para el relevo, no una orden de armas de fuego.
+\* Teclas por defecto; se pueden cambiar en **Ajustes**. Esc siempre pausa o cierra.
+\*\* «fuego» es solo un alias de juego para el relevo, no una orden de armas de fuego.
 
-- **Cohesión** (0–100): es la vida de la línea. La reducen las flechas, el combate cuerpo a cuerpo y las brechas. **Si llega a 0, pierdes.**
-- **Resistencia** (0–100): se gasta con las lanzas y el empuje, y se recupera con los escudos, el relevo y las pausas entre oleadas. Si llega a 0, la formación queda **agotada**: no ataca y solo acepta las órdenes Escudos y Relevo.
-- **Moral** (0–100): sube al eliminar enemigos y al superar oleadas, y baja con los impactos y las brechas. Con moral alta las lanzas hacen más daño.
-- **Brechas**: un enemigo que pasa 7 s trabado con la línea sin caer la atraviesa. **Con 4 brechas, pierdes.**
-- **Lluvias de flechas**: los arqueros se detienen fuera del alcance. Antes de cada descarga aparece un aviso (en la banda superior, sobre los arqueros y sobre la falange, con cuenta atrás). Después de tres descargas, los arqueros cargan cuerpo a cuerpo.
-
-| Oleada | Contenido | Qué enseña |
-|---|---|---|
-| 1. Exploración | 5 de infantería | Usar las lanzas y el relevo |
-| 2. Presión combinada | 2 arqueros y 6 de infantería | Alternar entre escudos y lanzas |
-| 3. Presión creciente | 3 arqueros y 9 de infantería, con avisos más cortos | Usar el empuje junto al acantilado y no perder la cohesión |
+- **Cohesión**: es la vida de la línea. Si llega a 0, pierdes. Se recuperan 20 puntos al superar cada oleada.
+- **Resistencia**: la gastan las lanzas y el empuje. Si llega a 0, la formación queda agotada y solo acepta las órdenes Escudos y Relevo.
+- **Moral**: con moral alta las lanzas hacen más daño.
+- **Brechas**: un enemigo trabado 7 s sin caer atraviesa la línea. Con 4 brechas, pierdes.
+- **Lluvias de flechas**: antes de cada descarga hay un aviso con cuenta atrás en la banda superior, sobre los arqueros y sobre la falange.
 
 ## Voz
 
-- El idioma es `es-PE`, con la opción de cambiar a `es-ES` en el menú.
-- Solo se usan resultados finales del reconocedor, no transcripciones parciales.
-- Las órdenes salen de una **lista cerrada de alias**. Se acepta la coincidencia exacta o una palabra de la frase («¡escudos ya!»). Si la frase contiene dos órdenes distintas se considera ambigua y no se ejecuta nada.
-- Si el navegador informa de la confianza, se exige un mínimo configurable (0,45).
+- El idioma es `es-PE`, y en Ajustes se puede cambiar a `es-ES` o `es-MX`. Solo se usan resultados finales del reconocedor, de una **lista cerrada de alias** sin parecidos entre órdenes distintas.
+- Si una frase contiene dos órdenes, se considera ambigua y no se ejecuta nada.
+- La **precisión exigida** (alta, normal o baja) fija la confianza mínima: 0,6, 0,45 o 0,25.
 - La misma orden dicha por voz no se repite antes de 1,2 s.
-- Ninguna orden va directa a los gráficos: todas pasan por `CommandController`. Este comprueba que la partida esté activa, que no esté en pausa, los enfriamientos y el estado de la formación. Durante una transición guarda **una** orden pendiente.
-- El permiso del micrófono se pide solo al pulsar «Activar micrófono». En el menú solo se comprueba el permiso: la escucha real empieza al entrar en la batalla y se detiene al salir de ella. Durante la pausa sigue escuchando para aceptar «continuar», pero rechaza las órdenes tácticas.
-- No se graba ni se guarda audio, y no hay ningún backend propio.
-- Si no hay API, se deniega el permiso o falla la red, el HUD informa del problema y el teclado y los botones siguen funcionando.
+- Ninguna orden va directa a los gráficos: todas pasan por `CommandController`.
+- El permiso del micrófono se pide solo tras una acción explícita.
+  - La escucha real ocurre durante la batalla o la prueba de Ajustes, y se detiene al salir.
+  - Durante la pausa sigue escuchando para aceptar «continuar».
+- **Identificación del jugador**: la respuesta a «¿cómo debo dirigirme a ti?» se reconoce con una tabla cerrada («mujer», «femenino»; «hombre», «masculino», «varón»; «prefiero no decirlo», «neutro»…). Si la frase es ambigua o no se entiende, se vuelve a preguntar. Mientras se escucha la respuesta, ninguna frase se convierte en orden.
+- **Lectura en voz alta** (opcional): usa la síntesis de voz del navegador. Mientras Leónidas habla, y durante un margen breve después, lo que oye el micrófono se ignora para que la narración no se convierta en órdenes.
+- No se graba ni se guarda audio, y no hay backend. Si no hay API, se deniega el permiso o falla la red, el HUD lo explica y el teclado y los botones siguen funcionando.
 
 ## Estructura
 
 ```
 src/
-├─ main.js                 entrada: Phaser, teclado, botones y escalado del lienzo
-├─ app.js                  composición: estado, bus, voz, audio, HUD y navegación entre escenas
-├─ config/                 balance.js (todos los valores de diseño), gameConfig.js (Phaser)
-├─ scenes/                 Boot, Preload, Menu, Battle, HUD (paralela) y Result
-├─ entities/               Formation (reglas), FormationView, EnemyUnit, EventMarker
-├─ systems/                BattleSimulation, CommandController, WaveManager, GameState,
-│                          VoiceCommandManager, AudioManager y EventBus
-├─ data/                   commands.js (tabla cerrada de órdenes), waves.js (enemigos y oleadas)
-├─ ui/                     HudView y Screens (HUD, menú, controles, pausa y resultado en HTML)
+├─ main.js                 entrada: Phaser, teclas (según ajustes), botones y escalado del lienzo
+├─ app.js                  composición: estado, bus, ajustes, voz, audio, vistas y navegación
+├─ config/                 balance.js (valores de diseño), gameConfig.js (Phaser)
+├─ scenes/                 Boot, Preload, Menu, Tutorial, Battle, HUD (paralela) y Result + backdrop (capas)
+├─ entities/               Formation (reglas), FormationView, EnemyUnit, EventMarker, XerxesView
+├─ systems/                BattleSimulation, CommandController, WaveManager, GameState, TutorialDirector,
+│                          CommanderMessages, BossDirector (Jerjes), PlayerProfile, SettingsStore,
+│                          VoiceCommandManager, Narrator, AudioManager y EventBus
+├─ data/                   commands.js (órdenes), waves.js (oleadas), boss.js (Jerjes), leonidas.js (mensajes)
+├─ ui/                     HudView, Screens (menú, ajustes, pausa, resultado, epílogo), TutorialView y CommanderView
 └─ styles/main.css
-public/assets/             pixel art provisional (PNG generados) y fuente pixel 3×5
-tools/art/                 generador del pixel art (sin recursos de terceros)
-scripts/                   bots de prueba y simulación de balance
-tests/                     38 pruebas: voz, órdenes, oleadas, combate y partidas completas
+public/assets/             pixel art generado (capas, personajes, efectos, iconos, retrato y fuente)
 ```
 
 ### Decisiones técnicas
 
-- **Reglas independientes de Phaser.** `BattleSimulation` usa un paso fijo de 1/60 s y es determinista: mueve a los enemigos, resuelve el combate, el empuje, las flechas, las brechas, las oleadas y el final de la partida. Por eso se puede probar en Node y simular partidas completas. `BattleScene` solo dibuja lo que ocurre en la simulación.
-- **Uso de Phaser.** Phaser se encarga de las escenas, la carga de recursos, las animaciones, los tweens, las partículas (polvo, chispas y salpicaduras) y de Arcade Physics para los objetos que se mueven por física: las flechas siguen un tiro parabólico con gravedad y los enemigos derribados caen por el acantilado. Esto se aparta en parte de la sección 8.5 del documento: el retroceso del empuje se calcula en la simulación y no con un cuerpo de Arcade. Así el resultado se puede probar y no depende de la tasa de fotogramas.
-- **Eventos de la sección 9.2.** `COMMAND_RECEIVED`, `FORMATION_CHANGED`, `WAVE_STARTED`, `WAVE_COMPLETED`, `MORALE_UPDATED`, `VOICE_ERROR` y `GAME_OVER` viajan por un bus propio, junto con otros eventos de la beta (descargas, empuje, brechas…).
-- **HUD y menús en HTML.** Así son accesibles con teclado y lectores de pantalla y se leen bien a cualquier tamaño. El lienzo usa una resolución lógica de 320 × 180, ampliada sin suavizado. El factor de zoom es entero cuando cabe y fraccionario cuando no, y siempre se mantiene la proporción 16:9.
-- **Sonidos.** Los efectos son tonos breves sintetizados con Web Audio y cada uno tiene un aviso visual equivalente. No se usa música (no se exige en la beta).
+- **Reglas independientes de Phaser.** `BattleSimulation` usa un paso fijo de 1/60 s y es determinista, así que la campaña y el tutorial se juegan enteros en Node. Las escenas solo dibujan.
+- **Uso de Phaser.** Phaser se encarga de las escenas, las animaciones, los tweens, las partículas y de Arcade Physics para las flechas (tiro parabólico, reutilizadas desde una reserva) y para los enemigos que caen al mar. El retroceso del empuje se calcula en la simulación para poder probarlo y para que no dependa de la tasa de fotogramas.
+- **Jefe final.** `BossDirector` (sin Phaser) se activa al cerrar la quinta oleada dentro de `BattleSimulation`: anuncia decretos, envía refuerzos, lleva la determinación y las fases, y al llegar a cero llama a la retirada. La simulación añade las tormentas de flechas, el enfurecimiento y la retirada; `XerxesView` solo los dibuja.
+- **Tutorial.** `TutorialScene` reutiliza `BattleScene` con una simulación sin oleadas en la que la línea nunca cede del todo. `TutorialDirector` prepara cada paso y comprueba el objetivo.
+- **Ajustes.** `SettingsStore` guarda las preferencias en `localStorage`, descarta datos corruptos y funciona en memoria si el almacenamiento está bloqueado. Al reasignar una tecla ocupada, las dos acciones intercambian sus teclas.
+- **HUD y menús en HTML.** El lienzo usa una resolución lógica de 320 × 180 sin suavizado, con zoom entero cuando cabe y siempre en 16:9.
 
-## Criterios de aceptación del Avance 1
+## Pruebas
 
-| Criterio | Estado | Cómo se comprobó |
-|---|---|---|
-| No hay bloqueos críticos al iniciar, jugar o reiniciar las tres oleadas | Cumplido | Partidas en el navegador sin errores de consola y bots que juegan las tres oleadas (`npm test`) |
-| La partida se gana o se pierde con un ciclo claro y luego se reinicia | Cumplido | Victoria y derrota en las pruebas; derrota y «Reintentar» en el navegador |
-| Las cuatro órdenes cambian el estado visual y producen su efecto | Cumplido | `tests/commands.test.js` y `tests/battle.test.js`, más una prueba manual |
-| Las órdenes de voz reconocidas reciben confirmación visible | Cumplido* | Se probó con un reconocedor simulado dentro de la página; no se probó con un micrófono real |
-| La beta se completa con teclado y botones sin micrófono | Cumplido | Bot «atento» (solo teclado) y prueba manual con teclas y botones |
-| La interfaz informa del estado del micrófono, los errores y la última orden | Cumplido | Probado con el permiso denegado, frases desconocidas y órdenes rechazadas |
-| No se guarda audio ni se envían datos a un backend propio | Cumplido | Solo se procesa texto; no hay servidor |
-| Los sprites se escalan con bordes nítidos y la partida es estable | Cumplido | `pixelArt` activado y `image-rendering: pixelated`; probado a 1280×760 y 1024×640 |
+El repositorio contiene solo lo necesario para ejecutar el juego. Las pruebas automáticas, la simulación de balance, el generador de pixel art y la documentación de pruebas de aceptación se mantienen fuera del repositorio.
 
-\* Falta probarlo con un micrófono real en Chrome o Edge.
-
-## Fuera del alcance de esta entrega (para la versión final)
-
-- Cinco oleadas y cuatro patrones de enemigo (guardia de élite y grupos mixtos).
-- Pixel art definitivo con capas, partículas optimizadas, música original y controles de volumen.
-- Tutorial, pantalla de ajustes (remapeo de teclas, reducir destellos, volumen), estadísticas de campaña y epílogo histórico ampliado.
-- Alias de voz ajustados con usuarios y pruebas ampliadas de accesibilidad y rendimiento.
+**Pendiente de comprobar:** la voz se probó con un reconocedor simulado. Falta jugar una partida completa con micrófono real en Chrome o Edge.
 
 ## Aviso histórico y de recursos
 
-Es una interpretación lúdica: la batalla real terminó en victoria persa y junto a los espartanos lucharon miles de aliados griegos. La pantalla de resultado lo explica. Todos los sprites, iconos, la fuente y los sonidos se generan por código en este repositorio. No se usa material de la película *300*.
+Es una interpretación lúdica: la batalla real terminó en victoria persa y junto a los espartanos lucharon miles de aliados griegos. Jerjes no combatió en persona y sus «decretos» son mecánicas inventadas; la frase de luchar a la sombra se atribuye al espartano Diéneces. El epílogo lo explica. Todos los sprites, iconos, la fuente pixel y la música se generan por código en este repositorio. No se usa material de la película *300*.

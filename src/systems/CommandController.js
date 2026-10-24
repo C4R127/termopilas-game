@@ -49,7 +49,7 @@ export class CommandController {
       return this.#finish(cmd, 'executed', CONFIRM.RESUME);
     }
 
-    if (s.isPaused) return this.#finish(cmd, 'rejected', 'Partida en pausa: di «continuar» o pulsa P');
+    if (s.isPaused) return this.#finish(cmd, 'rejected', 'Partida en pausa: di «continuar» o pulsa Esc');
     if (this.formation.busy && s.pending && def.id === s.formationMode) {
       // Repetir la postura actual durante la transición anula la orden en espera.
       s.pending = null;

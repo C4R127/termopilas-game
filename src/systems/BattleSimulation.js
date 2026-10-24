@@ -3,6 +3,7 @@ import { ENEMY_TYPES, WAVES } from '../data/waves.js';
 import { Formation } from '../entities/Formation.js';
 import { CommandController } from './CommandController.js';
 import { EVENTS } from './EventBus.js';
+import { BossDirector } from './BossDirector.js';
 import { WaveManager } from './WaveManager.js';
 
 // Pasos fijos: la simulación da el mismo resultado con cualquier tasa de fotogramas.
@@ -15,7 +16,15 @@ const MAX_STEPS = 10;
  * simular partidas completas; la escena solo dibuja lo que aquí ocurre.
  */
 export class BattleSimulation {
-  constructor(state, bus, { waves = WAVES } = {}) {
+  /**
+   * @param {object} opts
+   * @param {object[]} [opts.waves] oleadas (por defecto, la campaña)
+   * @param {number} [opts.warningScale] multiplica el aviso de flechas (ajuste de asistencia)
+   * @param {object} [opts.volley] ritmo de flechas cuando no hay oleada activa (tutorial)
+   * @param {boolean} [opts.noDefeat] la partida no se puede perder (tutorial)
+   * @param {object} [opts.boss] jefe final tras la última oleada (XERXES en la campaña)
+   */
+  constructor(state, bus, { waves = WAVES, warningScale = 1, volley = null, noDefeat = false, boss = null } = {}) {
     this.state = state;
     this.bus = bus;
     this.formation = new Formation(state, bus);
@@ -26,6 +35,15 @@ export class BattleSimulation {
     this.volleyClock = null; // { warnAt, fireAt, warned }
     this.nextId = 1;
     this.accumulator = 0;
+    this.warningScale = warningScale;
+    this.fallbackVolley = volley;
+    this.noDefeat = noDefeat;
+    this.storms = []; // tormentas de flechas del decreto de Jerjes
+    this.boss = boss ? new BossDirector(this, bus, boss) : null;
+    this.waveStart = { t: 0, kills: 0 };
+    this.offWave = bus.on(EVENTS.WAVE_STARTED, () => {
+      this.waveStart = { t: this.state.simTime, kills: this.state.stats.kills };
+    });
     this.offPush = bus.on(EVENTS.FORMATION_CHANGED, (e) => {
       if (e.mode === 'PUSH') this.#resolvePush();
     });
@@ -34,6 +52,8 @@ export class BattleSimulation {
   destroy() {
     this.commands.destroy();
     this.offPush();
+    this.offWave();
+    this.boss?.destroy();
   }
 
   start() {
@@ -43,6 +63,7 @@ export class BattleSimulation {
     this.enemies = [];
     this.volleys = [];
     this.volleyClock = null;
+    this.storms = [];
     this.accumulator = 0;
     this.waves.start();
   }
@@ -65,11 +86,12 @@ export class BattleSimulation {
     const s = this.state;
     s.simTime += dt;
 
-    for (const spawn of this.waves.update(dt)) this.#spawn(spawn);
+    for (const spawn of this.waves.update(dt)) this.spawn(spawn.type, spawn.row);
     this.#moveEnemies(dt);
     const engaged = this.#spearTargets().length > 0;
     this.#melee(dt);
     this.#updateVolleys(dt);
+    this.boss?.update(dt);
     this.formation.tick(dt, { engaged, resting: this.waves.resting });
     this.commands.flushPending();
 
@@ -80,13 +102,14 @@ export class BattleSimulation {
 
   // ── Enemigos ───────────────────────────────────────────────────────────
 
-  #spawn({ type, row }) {
+  /** Crea un enemigo (también lo usa el tutorial para preparar situaciones). */
+  spawn(type, row, x = LANE.spawnX) {
     const def = ENEMY_TYPES[type];
     const enemy = {
       id: this.nextId++,
       type,
       row,
-      x: LANE.spawnX,
+      x,
       hp: def.hp,
       maxHp: def.hp,
       vx: 0, // velocidad de retroceso (positiva hacia la derecha)
@@ -99,6 +122,7 @@ export class BattleSimulation {
     };
     this.enemies.push(enemy);
     this.bus.emit(EVENTS.ENEMY_SPAWNED, { enemy });
+    return enemy;
   }
 
   #moveEnemies(dt) {
@@ -117,7 +141,8 @@ export class BattleSimulation {
         } else if (t >= e.stunUntil) {
           const holdX = e.type === 'archer' && e.volleysLeft > 0 ? LANE.archerStopX : limit;
           const target = Math.max(holdX, limit);
-          if (e.x > target) e.x = Math.max(target, e.x - def.speed * sec);
+          const speed = def.speed * (this.#frenzied(e) ? e.frenzy.speedMult : 1);
+          if (e.x > target) e.x = Math.max(target, e.x - speed * sec);
         }
         e.x = Math.max(e.x, limit);
         e.inContact = e.x <= contactX + 0.5 && e.vx === 0;
@@ -150,11 +175,18 @@ export class BattleSimulation {
     const sec = dt / 1000;
     const f = this.formation;
     if (f.canAttack) {
-      for (const e of this.#spearTargets()) this.#hurt(e, f.spearDps * sec, 'spears');
+      const t = this.state.simTime;
+      for (const e of this.#spearTargets()) {
+        // La guardia de élite resiste las lanzas salvo cuando el empuje la desequilibra.
+        const def = ENEMY_TYPES[e.type];
+        const factor = def.armor == null ? 1 : t < e.stunUntil ? def.staggerFactor : def.armor;
+        this.#hurt(e, f.spearDps * factor * sec, 'spears');
+      }
     }
     for (const e of this.enemies) {
       if (e.removed || !e.inContact || e.state === 'stunned') continue;
-      f.damageCohesion(ENEMY_TYPES[e.type].contactDps * f.meleeFactor * sec);
+      const rage = this.#frenzied(e) ? e.frenzy.contactMult : 1;
+      f.damageCohesion(ENEMY_TYPES[e.type].contactDps * rage * f.meleeFactor * sec);
       e.contactMs += dt;
       if (e.contactMs >= BREACH.contactMs) this.#breach(e);
     }
@@ -166,10 +198,53 @@ export class BattleSimulation {
     if (enemy.hp <= 0) this.#kill(enemy, cause);
   }
 
+  #frenzied(e) {
+    return e.frenzy && this.state.simTime < e.frenzyUntil;
+  }
+
+  /** Decreto «Látigos de los capitanes»: los enemigos presentes se enfurecen. */
+  applyFrenzy(durationMs, speedMult, contactMult) {
+    const until = this.state.simTime + durationMs;
+    // Solo la infantería: los arqueros siguen a distancia y la guardia de élite no necesita látigos.
+    const affected = this.enemies.filter((e) => !e.removed && e.type === 'infantry');
+    for (const e of affected) {
+      e.frenzyUntil = until;
+      e.frenzy = { speedMult, contactMult };
+    }
+    this.bus.emit(EVENTS.FRENZY, { enemies: affected, until });
+    return affected;
+  }
+
+  #quell(enemy) {
+    if (!this.#frenzied(enemy)) return;
+    enemy.frenzyUntil = 0;
+    this.bus.emit(EVENTS.FRENZY_QUELLED, { enemy });
+  }
+
+  /** Jerjes ordena la retirada: los enemigos que quedan abandonan el paso. */
+  retreatAll() {
+    for (const e of this.enemies) {
+      if (e.removed) continue;
+      e.removed = true;
+      this.bus.emit(EVENTS.ENEMY_RETREAT, { enemy: e });
+    }
+    this.volleys = [];
+    this.storms = [];
+    this.volleyClock = null;
+  }
+
+  /** Final de la campaña decidido por el jefe (victoria o derrota). */
+  endCampaign(victory, reason) {
+    this.#gameOver(victory, reason);
+  }
+
   #kill(enemy, cause) {
+    this.#quell(enemy);
     enemy.removed = true;
     const s = this.state;
     s.stats.kills++;
+    s.stats.killsByType[enemy.type] = (s.stats.killsByType[enemy.type] ?? 0) + 1;
+    s.stats.score += ENEMY_TYPES[enemy.type].score + (cause === 'edge' ? 5 : 0);
     if (cause === 'edge') s.stats.edgeKills++;
     this.formation.changeMorale(cause === 'edge' ? MORALE.edgeKillBonus : MORALE.killBonus, 'kill');
     this.bus.emit(EVENTS.ENEMY_DIED, { enemy, cause });
@@ -189,14 +264,16 @@ export class BattleSimulation {
     const hits = [];
     for (const e of this.enemies) {
       if (e.removed || e.x > reach) continue;
-      if (e.row === LANE.edgeRow) {
+      const def = ENEMY_TYPES[e.type];
+      if (e.row === LANE.edgeRow && !def.edgeImmune) {
         // Junto al acantilado, el retroceso los hace caer al mar.
         hits.push({ enemy: e, fell: true });
         this.#kill(e, 'edge');
         continue;
       }
-      e.vx = PUSH.knockbackSpeed;
-      e.stunUntil = t + PUSH.stunMs;
+      this.#quell(e); // el empuje calma a los enfurecidos por los látigos
+      e.vx = PUSH.knockbackSpeed * (def.pushResist ?? 1);
+      e.stunUntil = t + (def.staggerMs ?? PUSH.stunMs);
       e.contactMs = 0;
       hits.push({ enemy: e, fell: false });
       this.#hurt(e, PUSH.damage, 'push');
@@ -212,7 +289,7 @@ export class BattleSimulation {
 
   #updateVolleys(dt) {
     const t = this.state.simTime;
-    const wave = this.waves.current;
+    const wave = this.waves.current ?? (this.fallbackVolley ? { volley: this.fallbackVolley } : null);
     const archers = this.#archersReady();
 
     if (!this.volleyClock && archers.length > 0 && wave) {
@@ -225,15 +302,27 @@ export class BattleSimulation {
         if (archers.length === 0) {
           this.volleyClock = null;
         } else {
+          const warningMs = Math.round(wave.volley.warningMs * this.warningScale);
           clock.warned = true;
-          clock.fireAt = t + wave.volley.warningMs;
-          this.bus.emit(EVENTS.VOLLEY_WARNING, { archers, warningMs: wave.volley.warningMs, fireAt: clock.fireAt });
+          clock.fireAt = t + warningMs;
+          clock.warningMs = warningMs;
+          this.bus.emit(EVENTS.VOLLEY_WARNING, { archers, warningMs, fireAt: clock.fireAt });
         }
       } else if (clock.warned && t >= clock.fireAt) {
         if (archers.length > 0) this.#fire(archers);
-        this.volleyClock = archers.length > 0 ? { warnAt: t + wave.volley.intervalMs - wave.volley.warningMs, warned: false } : null;
+        const gap = Math.max(1500, wave.volley.intervalMs - wave.volley.warningMs);
+        this.volleyClock = archers.length > 0 ? { warnAt: t + gap, warned: false } : null;
       }
     }
+
+    for (const storm of this.storms) {
+      if (storm.left <= 0 || t < storm.nextFire) continue;
+      storm.left--;
+      storm.nextFire += storm.gapMs;
+      this.volleys.push({ impactAt: t + ARROWS.flightMs, damage: storm.damage, storm, remaining: storm.left, done: false });
+      this.bus.emit(EVENTS.VOLLEY_FIRED, { archers: [], storm: true, flightMs: ARROWS.flightMs, damage: storm.damage });
+    }
+    this.storms = this.storms.filter((st) => st.left > 0);
 
     for (const v of this.volleys) {
       if (v.done || t < v.impactAt) continue;
@@ -241,6 +330,19 @@ export class BattleSimulation {
       this.#impact(v);
     }
     this.volleys = this.volleys.filter((v) => !v.done);
+  }
+
+  /**
+   * Decreto «Que las flechas oculten el sol»: tras un aviso, varias descargas
+   * seguidas del ejército persa (fuera de pantalla). Hay que sostener los escudos.
+   */
+  scheduleStorm({ warningMs, volleys, gapMs, damage }) {
+    const t = this.state.simTime;
+    const warn = Math.round(warningMs * this.warningScale);
+    const storm = { id: this.nextId++, nextFire: t + warn, left: volleys, total: volleys, gapMs, damage, allBlocked: true };
+    this.storms.push(storm);
+    this.bus.emit(EVENTS.VOLLEY_WARNING, { archers: [], warningMs: warn, fireAt: storm.nextFire, storm: volleys });
+    return storm;
   }
 
   #fire(archers) {
@@ -261,23 +363,44 @@ export class BattleSimulation {
       this.formation.damageCohesion(volley.damage);
       this.formation.changeMorale(-ARROWS.moralePenalty, 'arrows');
     }
-    this.bus.emit(EVENTS.VOLLEY_IMPACT, { blocked, damage: blocked ? 0 : volley.damage });
+    const storm = volley.storm;
+    this.bus.emit(EVENTS.VOLLEY_IMPACT, { blocked, damage: blocked ? 0 : volley.damage, storm: !!storm, remaining: storm ? volley.remaining : 0 });
+    if (storm) {
+      storm.allBlocked &&= blocked;
+      if (volley.remaining === 0) this.bus.emit(EVENTS.STORM_ENDED, { allBlocked: storm.allBlocked, volleys: storm.total });
+    }
   }
 
   // ── Fin de oleada y de partida ───────────────────────────────────────────
 
   #checkEnd() {
     const s = this.state;
+    if (this.noDefeat) {
+      // Tutorial: la línea nunca cede del todo.
+      s.cohesion = Math.max(s.cohesion, 25);
+      s.breaches = Math.min(s.breaches, BREACH.maxBreaches - 1);
+    }
     if (s.cohesion <= 0) return this.#gameOver(false, 'cohesion');
     if (s.breaches >= BREACH.maxBreaches) return this.#gameOver(false, 'breaches');
     if (this.waves.isCleared(s.activeEnemies) && this.volleys.length === 0) {
       const index = s.waveIndex;
       this.volleyClock = null;
+      s.stats.waveLog.push({
+        index,
+        timeMs: s.simTime - this.waveStart.t,
+        kills: s.stats.kills - this.waveStart.kills,
+        cohesion: Math.round(s.cohesion),
+        breaches: s.breaches,
+      });
+      s.stats.score += 100 + Math.round(s.cohesion);
       this.formation.changeMorale(MORALE.waveBonus, 'wave');
       this.formation.restoreCohesion(INTERMISSION.cohesionBonus);
       const finished = this.waves.completeWave();
-      this.bus.emit(EVENTS.WAVE_COMPLETED, { index, total: this.waves.total, last: finished });
-      if (finished) this.#gameOver(true, 'campaign');
+      this.bus.emit(EVENTS.WAVE_COMPLETED, { index, total: this.waves.total, last: finished && !this.boss });
+      if (finished) {
+        if (this.boss) this.boss.start(); // tras la última oleada llega el enfrentamiento final
+        else this.#gameOver(true, 'campaign');
+      }
     }
     return undefined;
   }
@@ -287,7 +410,18 @@ export class BattleSimulation {
     if (s.phase === 'over') return;
     s.phase = 'over';
     s.pending = null;
-    s.result = { victory, reason, timeMs: s.simTime, wavesCleared: victory ? this.waves.total : s.waveIndex };
+    const bossReached = !!s.boss;
+    s.result = {
+      victory,
+      reason,
+      timeMs: s.simTime,
+      wavesCleared: victory || bossReached ? this.waves.total : s.waveIndex,
+      bossReached,
+      bossDefeated: victory && bossReached,
+      bossResolve: s.boss?.resolve ?? null,
+      bossTimeMs: s.boss ? s.simTime - s.boss.startedAt : null,
+      cohesion: Math.round(s.cohesion),
+    };
     this.bus.emit(EVENTS.GAME_OVER, { ...s.result, stats: s.stats });
   }
 }

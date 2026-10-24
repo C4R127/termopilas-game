@@ -2,42 +2,38 @@ import Phaser from 'phaser';
 import './styles/main.css';
 import { createApp } from './app.js';
 import { fitZoom, gameConfig } from './config/gameConfig.js';
-import { COMMANDS } from './data/commands.js';
 
 const app = createApp();
 const game = new Phaser.Game(gameConfig);
 app.game = game;
 game.registry.set('app', app);
 
-// Teclado: 1–4 órdenes, P/Esc pausa, V micrófono, M silencio.
-const TACTICAL_KEYS = new Map(COMMANDS.filter((c) => c.tactical).flatMap((c) => c.keys.map((k) => [k, c.id])));
-
+// Teclado: las teclas de cada acción vienen de los ajustes (se pueden reasignar).
+// Esc siempre pausa, cierra la confirmación abierta o vuelve atrás en los menús.
 window.addEventListener('keydown', (e) => {
   if (e.target.closest?.('input, select, textarea')) return;
   if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.code === 'KeyV') {
-    app.toggleVoice();
-    return;
-  }
-  if (e.code === 'KeyM') {
-    const muted = app.audio.toggleMute();
-    if (app.inBattle) app.hud.alert(muted ? 'Sonido desactivado' : 'Sonido activado', 'info', 1200);
-    return;
-  }
-  if (!app.inBattle) return;
-  if (e.code === 'KeyP' || e.code === 'Escape') {
-    // Con una confirmación abierta, Esc la cierra en lugar de reanudar.
+  const screens = app.screens;
+  if (e.code === 'Escape') {
     const confirmBox = document.querySelector('.confirm-box');
-    if (e.code === 'Escape' && confirmBox) confirmBox.remove();
+    if (confirmBox) confirmBox.remove();
+    else if (['controls', 'settings', 'epilogue'].includes(screens.current)) screens.back();
     else app.togglePause('keyboard');
     e.preventDefault();
     return;
   }
-  const id = TACTICAL_KEYS.get(e.code);
-  if (id) {
-    e.preventDefault();
-    app.sendCommand(id, 'keyboard');
-  }
+  const action = app.settings.actionFor(e.code);
+  if (!action) return;
+  e.preventDefault();
+  if (action === 'VOICE') app.toggleVoice();
+  else if (action === 'MUTE') {
+    const muted = !app.settings.get('audio', 'muted');
+    app.settings.set('audio', 'muted', muted);
+    if (app.inBattle) app.hud.alert(muted ? 'Sonido desactivado' : 'Sonido activado', 'info', 1200);
+  } else if (action === 'PAUSE') {
+    // Con Ajustes o Controles abiertos durante la pausa, la tecla de pausa no reanuda por accidente.
+    if (screens.current === null || screens.current === 'pause') app.togglePause('keyboard');
+  } else app.sendCommand(action, 'keyboard');
 });
 
 // Botones en pantalla.

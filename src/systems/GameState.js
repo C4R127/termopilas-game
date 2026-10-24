@@ -45,6 +45,7 @@ export class GameState {
     this.cooldowns = { PUSH: 0, RELIEF: 0 }; // simTime en que vuelven a estar disponibles
     this.breaches = 0;
     this.result = null; // { victory, reason }
+    this.boss = null; // { resolve, max, phase, decree } durante el enfrentamiento con Jerjes
     this.stats = {
       kills: 0,
       edgeKills: 0,
@@ -52,6 +53,11 @@ export class GameState {
       volleysTaken: 0,
       commands: { voice: 0, keyboard: 0, button: 0 },
       rejected: 0,
+      killsByType: {},
+      score: 0,
+      waveLog: [], // { index, timeMs, kills, cohesion, breaches } por oleada superada
+      voiceHeard: 0, // frases finales oídas por el reconocedor
+      voiceMatched: 0, // de ellas, cuántas se tradujeron en una orden
     };
     return this;
   }
@@ -77,6 +83,7 @@ export class GameState {
       pushReadyIn: Math.max(0, this.cooldowns.PUSH - this.simTime),
       reliefReadyIn: Math.max(0, this.cooldowns.RELIEF - this.simTime),
       pending: this.pending,
+      boss: this.boss && { ...this.boss },
     };
   }
 }

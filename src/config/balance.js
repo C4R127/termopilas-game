@@ -90,7 +90,7 @@ export const MORALE = {
 export const INTERMISSION = {
   durationMs: 4000, // dentro del rango de diseño de 3–6 s
   staminaPerSec: 8,
-  cohesionBonus: 10,
+  cohesionBonus: 20,
 };
 
 export const VOICE = {

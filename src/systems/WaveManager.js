@@ -53,7 +53,7 @@ export class WaveManager {
       return;
     }
     this.phase = 'intermission';
-    this.timer = FIRST_WAVE_DELAY_MS;
+    this.timer = this.waves[0].restMs ?? FIRST_WAVE_DELAY_MS;
   }
 
   /** @returns {{type: string, row: number}[]} enemigos que deben aparecer en este paso */
@@ -72,7 +72,9 @@ export class WaveManager {
     wave.groups.forEach((group, i) => {
       while (this.progress[i] < group.count && this.elapsed >= group.delayMs + this.progress[i] * group.intervalMs) {
         const rows = group.rows ?? [1];
-        spawns.push({ type: group.type, row: rows[this.progress[i] % rows.length] });
+        const n = this.progress[i];
+        const type = group.type === 'mixed' ? group.mix[n % group.mix.length] : group.type;
+        spawns.push({ type, row: rows[n % rows.length] });
         this.progress[i]++;
       }
       if (this.progress[i] < group.count) pending = true;
@@ -94,7 +96,7 @@ export class WaveManager {
     }
     this.state.waveIndex++;
     this.phase = 'intermission';
-    this.timer = INTERMISSION.durationMs;
+    this.timer = this.current.restMs ?? INTERMISSION.durationMs;
     return false;
   }
 

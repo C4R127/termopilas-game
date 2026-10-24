@@ -6,6 +6,7 @@ import { MenuScene } from '../scenes/MenuScene.js';
 import { BattleScene } from '../scenes/BattleScene.js';
 import { HUDScene } from '../scenes/HUDScene.js';
 import { ResultScene } from '../scenes/ResultScene.js';
+import { TutorialScene } from '../scenes/TutorialScene.js';
 
 /** Resolución lógica de 320 × 180, ampliada sin suavizado (ver fitZoom). */
 export const gameConfig = {
@@ -19,7 +20,7 @@ export const gameConfig = {
   scale: { mode: Phaser.Scale.NONE, zoom: 3 },
   physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
   fps: { target: 60 },
-  scene: [BootScene, PreloadScene, MenuScene, BattleScene, HUDScene, ResultScene],
+  scene: [BootScene, PreloadScene, MenuScene, TutorialScene, BattleScene, HUDScene, ResultScene],
 };
 
 /**

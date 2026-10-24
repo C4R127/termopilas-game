@@ -56,8 +56,8 @@ export class HudView {
     this.#meter('cohesion', snap.cohesion);
     this.#meter('stamina', snap.stamina);
     this.#meter('morale', snap.morale);
-    this.#set('wave', `${snap.waveIndex}|${wave.total}|${wave.name}`, () => {
-      this.el.wave.textContent = snap.waveIndex + 1;
+    this.#set('wave', `${wave.index}|${wave.total}|${wave.name}`, () => {
+      this.el.wave.textContent = wave.index + 1;
       this.el.waves.textContent = wave.total;
       this.el.waveName.textContent = wave.name;
     });
@@ -148,6 +148,35 @@ export class HudView {
 
   clearAlerts() {
     this.alerts.replaceChildren();
+  }
+
+  /** Panel de Jerjes en la barra superior durante el enfrentamiento final. */
+  setBoss(boss) {
+    const panel = document.querySelector('.hud-boss');
+    const wave = document.querySelector('.hud-wave');
+    panel.hidden = !boss;
+    wave.hidden = !!boss;
+    if (!boss) return;
+    const pct = Math.round((boss.resolve / boss.max) * 100);
+    this.#set('bossBar', pct, (p) => { this.el.bossBar.style.width = `${p}%`; });
+    this.#set('bossPhase', boss.standing, (st) => { this.el.bossPhase.textContent = st ? 'se ha levantado' : 'en su trono'; });
+    this.#set('bossDecree', boss.decreeName ?? '', (d) => {
+      this.el.bossDecree.textContent = d ? `Decreto: «${d}»` : `Determinación ${boss.resolve} / ${boss.max}`;
+      panel.dataset.decree = String(!!d);
+    });
+    if (!boss.decreeName) this.el.bossDecree.textContent = `Determinación ${boss.resolve} / ${boss.max}`;
+  }
+
+  /** Rótulos de tecla en los botones según las asignaciones actuales. */
+  setKeyLabels(keys, labelOf) {
+    for (const [id, btn] of Object.entries(this.buttons)) btn.querySelector('kbd').textContent = labelOf(keys[id]);
+    this.micBtn.querySelector('kbd').textContent = labelOf(keys.VOICE);
+    document.querySelector('#pause-btn kbd').textContent = labelOf(keys.PAUSE);
+  }
+
+  /** En el tutorial la barra superior indica pasos en lugar de oleadas. */
+  setWaveCaption(text) {
+    document.querySelector('.hud-wave .hud-label').textContent = text;
   }
 
   static commandLabel(id) {

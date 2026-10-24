@@ -1,4 +1,9 @@
-node_modules
-dist
 node_modules/
 dist/
+
+# Solo en local (no hacen falta para ejecutar el juego): pruebas, simulación de
+# balance, generador de pixel art y documentación de entrega.
+tests/
+scripts/
+tools/
+docs/

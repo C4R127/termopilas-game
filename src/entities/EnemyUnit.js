@@ -4,6 +4,7 @@ import { LANE } from '../config/balance.js';
 const ANIMS = {
   infantry: { advance: 'inf-walk', contact: 'inf-attack', aiming: 'inf-walk' },
   archer: { advance: 'arc-walk', contact: 'arc-melee', aiming: null },
+  elite: { advance: 'eli-walk', contact: 'eli-attack', aiming: 'eli-walk' },
 };
 
 /**
@@ -30,7 +31,17 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
     if (rec.state === 'stunned') {
       this.anims.stop();
       this.setFrame(6);
+      // La guardia de élite desequilibrada es vulnerable: se resalta con tinte y texto.
+      if (rec.type === 'elite' && !this.staggered) {
+        this.staggered = true;
+        this.setTint(0xffe08a);
+        this.scene.events.emit('elite-staggered', this);
+      }
     } else if (!this.releasing) {
+      if (this.staggered) {
+        this.staggered = false;
+        this.clearTint();
+      }
       const key = ANIMS[rec.type][rec.state];
       if (key) this.anims.play(key, true);
       else if (rec.state === 'aiming') {
@@ -38,10 +49,23 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
         this.setFrame(4);
       }
     }
-    if (rec.hp < this.lastHp - 0.5 && now > this.flashUntil) {
+    // Enfurecidos por los látigos de Jerjes: tinte rojizo y paso más rápido.
+    const frenzied = rec.frenzyUntil > now;
+    if (frenzied !== !!this.frenzied) {
+      this.frenzied = frenzied;
+      this.anims.timeScale = frenzied ? 1.6 : 1;
+      if (frenzied) this.setTint(0xff9a7a);
+      else if (!this.staggered) this.clearTint();
+    }
+    if (rec.hp < this.lastHp - 0.5 && now > this.flashUntil && !this.scene.reduceEffects) {
       this.setTintFill(0xffffff);
       this.flashUntil = now + 160;
-      this.scene.time.delayedCall(60, () => !this.dying && this.clearTint());
+      this.scene.time.delayedCall(60, () => {
+        if (this.dying) return;
+        if (this.staggered) this.setTint(0xffe08a);
+        else if (this.frenzied) this.setTint(0xff9a7a);
+        else this.clearTint();
+      });
     }
     this.lastHp = rec.hp;
   }
@@ -70,11 +94,21 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
     this.scene.tweens.add({ targets: this, alpha: 0, delay: 500, duration: 500, onComplete: () => this.destroy() });
   }
 
+  /** Jerjes ordena la retirada: da media vuelta y sale por la derecha. */
+  retreat() {
+    this.dying = true;
+    this.clearTint();
+    this.setFlipX(false);
+    this.anims.timeScale = 1;
+    this.anims.play(ANIMS[this.record.type].advance, true);
+    this.scene.tweens.add({ targets: this, x: 340, duration: 2200 + Math.random() * 600, ease: 'Sine.easeIn', onComplete: () => this.destroy() });
+  }
+
   /** Atraviesa la línea y se pierde en la retaguardia. */
   breach() {
     this.dying = true;
     this.setTint(0xff8a70);
-    this.anims.play(this.record.type === 'archer' ? 'arc-walk' : 'inf-walk', true);
+    this.anims.play(ANIMS[this.record.type].advance, true);
     this.setDepth(this.y * 10 + 9);
     this.scene.tweens.add({ targets: this, x: 8, alpha: 0, duration: 900, ease: 'Sine.easeIn', onComplete: () => this.destroy() });
   }

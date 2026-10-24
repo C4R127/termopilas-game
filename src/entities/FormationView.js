@@ -4,6 +4,7 @@ import { MODES } from '../systems/GameState.js';
 // Posiciones (centro del sprite) de las tres filas de la falange y de la reserva.
 export const RANK_X = [86, 73, 60];
 export const RESERVE_X = 40;
+const OFFSCREEN_X = -14; // fuera del borde izquierdo del lienzo
 const MODE_ICON = { SHIELDS: 0, SPEARS: 1, PUSH: 2, RELIEF: 3, EXHAUSTED: 4 };
 const depthFor = (x, y) => y * 10 + x / 100;
 
@@ -93,7 +94,11 @@ export class FormationView {
     this.scene.tweens.add({ targets: front, x: '+=5', duration: 120, yoyo: true, ease: 'Quad.easeOut' });
   }
 
-  /** La reserva avanza a la primera fila mientras la primera fila cansada se retira. */
+  /**
+   * Relevo: la reserva avanza a la primera fila mientras la primera fila cansada
+   * se retira por la izquierda y sale de la pantalla; después entra un hoplita
+   * de refresco que ocupa el puesto de reserva.
+   */
   #relief() {
     if (this.relieving) return;
     this.relieving = true;
@@ -108,26 +113,78 @@ export class FormationView {
       tired.setFlipX(true);
       fresh.y -= 1;
       tired.y += 1;
-      this.scene.tweens.add({ targets: tired, x: RESERVE_X, duration: dur, ease: 'Sine.easeInOut', onUpdate: () => tired.setDepth(depthFor(tired.x, row.y)) });
-      this.scene.tweens.add({ targets: fresh, x: RANK_X[0], duration: dur, ease: 'Sine.easeInOut', onUpdate: () => fresh.setDepth(depthFor(fresh.x, row.y)) });
+      const depth = (s) => s.setDepth(depthFor(s.x, row.y));
+      this.scene.tweens.add({ targets: fresh, x: RANK_X[0], duration: dur, ease: 'Sine.easeInOut', onUpdate: () => depth(fresh) });
+      this.scene.tweens.chain({
+        targets: tired,
+        tweens: [
+          // Retirada fuera de pantalla…
+          { x: OFFSCREEN_X, duration: dur * 1.4, ease: 'Sine.easeIn', onUpdate: () => depth(tired) },
+          // …y llega un hoplita de refresco desde la retaguardia.
+          {
+            x: RESERVE_X,
+            duration: 900,
+            ease: 'Sine.easeOut',
+            onStart: () => {
+              tired.setFlipX(false);
+              tired.clearTint();
+            },
+            onUpdate: () => depth(tired),
+            onComplete: () => {
+              tired.walking = false;
+              tired.y = row.y;
+              depth(tired);
+              if (this.mode !== 'VICTORY' && this.mode !== 'DEFEAT') tired.anims.play('hop-idle', true);
+            },
+          },
+        ],
+      });
       row.ranks[0] = fresh;
       row.reserve = tired;
     }
     this.scene.time.delayedCall(dur + 20, () => {
       this.relieving = false;
       for (const row of this.rows) {
-        for (const s of [row.ranks[0], row.reserve]) {
-          s.walking = false;
-          s.setFlipX(false);
-          s.y = row.y;
-        }
+        const s = row.ranks[0];
+        s.walking = false;
+        s.setFlipX(false);
+        s.y = row.y;
       }
       this.#applyAnims();
     });
   }
 
-  /** Destello al recibir daño. */
+  /** Final de la campaña: escudos y lanzas en alto. */
+  victory() {
+    this.mode = 'VICTORY';
+    this.icon?.setVisible(false);
+    for (const s of this.soldiers) {
+      s.walking = false;
+      s.anims.play({ key: 'hop-victory', startFrame: Math.floor(Math.random() * 2) }, true);
+    }
+  }
+
+  /** La línea cede: los hoplitas caen de rodillas y al suelo, de delante hacia atrás. */
+  defeat() {
+    this.mode = 'DEFEAT';
+    this.icon?.setVisible(false);
+    this.rows.forEach((row) => {
+      row.ranks.forEach((s, rank) => {
+        s.walking = false;
+        this.scene.time.delayedCall(rank * 220 + Math.random() * 150, () => s.anims.play('hop-defeat', true));
+      });
+      // La reserva se retira del campo y sale de la pantalla.
+      const r = row.reserve;
+      this.scene.tweens.killTweensOf(r);
+      r.walking = true;
+      r.setFlipX(true).anims.play('hop-walk', true);
+      this.scene.tweens.add({ targets: r, x: OFFSCREEN_X, delay: 400 + Math.random() * 300, duration: 1600, ease: 'Sine.easeIn' });
+    });
+  }
+
+  /** Destello al recibir daño (se omite con «Reducir efectos»). */
   hurt() {
+    if (this.scene.reduceEffects) return;
     for (const s of this.soldiers) {
       s.setTintFill(0xd0533f);
       this.scene.time.delayedCall(90, () => s.clearTint());
