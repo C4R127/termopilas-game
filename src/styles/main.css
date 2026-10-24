@@ -410,6 +410,15 @@ kbd {
 .btn[aria-pressed='true'].btn-small, .narration-btn[aria-pressed='true'] { border-color: var(--ok); background: #2c3a22; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+/* ── Marco pixel de los paneles (images/ui/panel-frame.png, 9-slice de 5 px a ×2) ── */
+.panel, .tutorial {
+  border: 10px solid var(--bronze-dark);
+  border-image: url('/assets/images/ui/panel-frame.png') 5 fill / 10px stretch;
+  image-rendering: pixelated;
+  border-radius: 0;
+}
+.commander { border-width: 8px; border-image-width: 8px; }
+
 /* ── Accesibilidad: alto contraste, texto grande, menos efectos ─────────── */
 :root[data-contrast='high'] {
   --bg: #000;
@@ -426,6 +435,7 @@ kbd {
 :root[data-contrast='high'] .alert, :root[data-contrast='high'] .panel { border-width: 3px; }
 :root[data-contrast='high'] .cmd[aria-pressed='true'] { background: #5a3a00; outline: 3px solid #ffd36b; }
 :root[data-contrast='high'] .bar { border-color: #fff; }
+:root[data-contrast='high'] :is(.panel, .tutorial) { border-image: none; border: 3px solid #f2f2f2; border-radius: 6px; }
 :root[data-large-text='true'] :is(.hud-top, .hud-bottom, .panel, .alerts, .tutorial) { zoom: 1.18; }
 :root[data-reduce-effects='true'] *, :root[data-reduce-effects='true'] *::before { animation: none !important; transition: none !important; }
 

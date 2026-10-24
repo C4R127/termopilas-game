@@ -23,6 +23,14 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
     this.setDepth(this.y * 10 + 5);
     scene.add.existing(this);
     this.play(ANIMS[record.type].advance);
+    // Sombra de contacto: ancla al suelo (biblia de arte, §2). Por debajo de su fila, encima del suelo.
+    this.shadow = scene.add.image(this.x, this.y + 2, 'shadow').setOrigin(0.5, 1).setDepth(this.y * 10 - 2);
+  }
+
+  destroy(fromScene) {
+    this.shadow?.destroy();
+    this.shadow = null;
+    super.destroy(fromScene);
   }
 
   sync(rec, now) {
@@ -83,6 +91,7 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
     this.anims.stop();
     this.clearTint();
     if (cause === 'edge') {
+      this.shadow?.setVisible(false); // ya no pisa el suelo
       // Cae por el acantilado: cuerpo de Arcade Physics con gravedad.
       this.scene.physics.add.existing(this);
       this.body.setAllowGravity(true).setGravityY(420).setVelocity(55, -70).setAngularVelocity(260);
@@ -115,6 +124,10 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
 
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
+    if (this.shadow) {
+      this.shadow.x = this.x;
+      this.shadow.alpha = this.alpha;
+    }
     if (this.body && this.y > 186) {
       this.scene.events.emit('enemy-splash', this.x);
       this.destroy();

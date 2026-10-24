@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { LANE, RELIEF } from '../config/balance.js';
 import { MODES } from '../systems/GameState.js';
 
@@ -7,6 +8,8 @@ export const RESERVE_X = 40;
 const OFFSCREEN_X = -14; // fuera del borde izquierdo del lienzo
 const MODE_ICON = { SHIELDS: 0, SPEARS: 1, PUSH: 2, RELIEF: 3, EXHAUSTED: 4 };
 const depthFor = (x, y) => y * 10 + x / 100;
+// Las filas de detrás se oscurecen un 22 % para separar planos (biblia de arte, §2).
+const BACK_TINT = 0xc7c7c7;
 
 /**
  * Dibujo de la formación aliada. Lee el estado (Formation/GameState) y lo
@@ -23,6 +26,16 @@ export class FormationView {
       ranks: RANK_X.map((x) => this.#soldier(x, y)),
       reserve: this.#soldier(RESERVE_X, y),
     }));
+    this.#depthTints();
+    // Las sombras siguen a cada hoplita (también durante el relevo y la retirada).
+    const sync = () => {
+      for (const s of this.soldiers) {
+        s.shadow.x = s.x;
+        s.shadow.alpha = s.alpha;
+      }
+    };
+    scene.events.on(Phaser.Scenes.Events.UPDATE, sync);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.events.off(Phaser.Scenes.Events.UPDATE, sync));
     if (withIcon) {
       this.icon = scene.add.image(RANK_X[1], LANE.rowsY[0] - 30, 'icons', 1).setDepth(800);
       scene.tweens.add({ targets: this.icon, y: this.icon.y - 2, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -32,10 +45,27 @@ export class FormationView {
   #soldier(x, y) {
     const s = this.scene.add.sprite(x, y, 'hoplite', 0).setOrigin(0.5, 1);
     s.setDepth(depthFor(x, y));
+    s.shadow = this.scene.add.image(x, y + 2, 'shadow').setOrigin(0.5, 1).setDepth(y * 10 - 2);
     s.homeX = x;
     // Pequeño desfase para que la formación no respire al unísono.
     s.anims.play({ key: 'hop-idle', startFrame: Math.floor(Math.random() * 2) });
     return s;
+  }
+
+  /** Primera fila a plena luz; segunda, tercera y reserva, más oscuras. */
+  #depthTints() {
+    for (const row of this.rows) {
+      row.ranks.forEach((s, rank) => {
+        s.baseTint = rank === 0 ? null : BACK_TINT;
+      });
+      row.reserve.baseTint = BACK_TINT;
+    }
+    for (const s of this.soldiers) this.#restoreTint(s);
+  }
+
+  #restoreTint(s) {
+    if (s.baseTint) s.setTint(s.baseTint);
+    else s.clearTint();
   }
 
   get soldiers() {
@@ -125,10 +155,7 @@ export class FormationView {
             x: RESERVE_X,
             duration: 900,
             ease: 'Sine.easeOut',
-            onStart: () => {
-              tired.setFlipX(false);
-              tired.clearTint();
-            },
+            onStart: () => tired.setFlipX(false),
             onUpdate: () => depth(tired),
             onComplete: () => {
               tired.walking = false;
@@ -150,6 +177,7 @@ export class FormationView {
         s.setFlipX(false);
         s.y = row.y;
       }
+      this.#depthTints();
       this.#applyAnims();
     });
   }
@@ -187,7 +215,7 @@ export class FormationView {
     if (this.scene.reduceEffects) return;
     for (const s of this.soldiers) {
       s.setTintFill(0xd0533f);
-      this.scene.time.delayedCall(90, () => s.clearTint());
+      this.scene.time.delayedCall(90, () => this.#restoreTint(s));
     }
   }
 
