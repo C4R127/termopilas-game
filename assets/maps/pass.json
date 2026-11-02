@@ -249,8 +249,8 @@
           "type": "decoracion",
           "x": 4,
           "y": 130,
-          "width": 32,
-          "height": 28,
+          "width": 36,
+          "height": 32,
           "properties": [
             {
               "name": "textura",
