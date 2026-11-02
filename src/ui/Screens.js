@@ -1,10 +1,14 @@
-import { BREACH } from '../config/balance.js';
+import { BREACH, DIFFICULTY } from '../config/balance.js';
 import { COMMANDS } from '../data/commands.js';
+import { ANOPAEA } from '../data/anopaea.js';
+import { LIGHT_SETTING } from '../config/lighting.js';
 import { XERXES } from '../data/boss.js';
 import { ENEMY_TYPES, WAVES } from '../data/waves.js';
 import { LEONIDAS } from '../data/leonidas.js';
-import { IDENTITIES, personalize } from '../systems/PlayerProfile.js';
+import { ADDRESS_OPTIONS, personalize } from '../systems/PlayerProfile.js';
 import { KEY_ACTION_LABELS, KEY_ACTIONS, keyLabel, VOICE_SENSITIVITY } from '../systems/SettingsStore.js';
+
+const LOGO = `${import.meta.env.BASE_URL}assets/images/ui/logo.png`;
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -16,10 +20,15 @@ const LANGS = [
 
 const REASONS = {
   campaign: 'La falange resistió las cinco oleadas.',
+  anopaea: 'Rodeada por el paso y por la senda de Anopea, la falange resistió las cuatro oleadas.',
   xerxes: 'Jerjes ordenó la retirada: la falange resistió las cinco oleadas y todos sus decretos.',
   cohesion: 'La cohesión de la formación llegó a cero y la línea cedió.',
   breaches: `Demasiados enemigos abrieron brecha en la línea (${BREACH.maxBreaches}).`,
 };
+
+const ANOPAEA_NOTE = `<p class="history-note"><b>Nota histórica.</b> En el tercer día, Efialtes guió a los persas por la senda
+de Anopea. Leónidas despidió a gran parte del ejército y cayó con los espartanos, los tespios y los tebanos que se quedaron.
+Tu resultado es el de una simulación jugable.</p>`;
 
 const SHORT_NOTE = `<p class="history-note"><b>Nota histórica.</b> La batalla real terminó en victoria persa: un sendero de montaña
 permitió rodear la posición griega. Tu resultado es el de una simulación jugable, no una reconstrucción exacta.</p>`;
@@ -82,7 +91,9 @@ export class Screens {
     const h = this.handlers;
     switch (action) {
       case 'start': return h.onStart();
+      case 'difficulty': return this.#setDifficulty(target.dataset.id);
       case 'tutorial': return h.onTutorial();
+      case 'anopaea': return h.onAnopaea();
       case 'controls': return this.controls();
       case 'settings': return this.settingsScreen();
       case 'epilogue': return this.epilogue();
@@ -97,9 +108,6 @@ export class Screens {
       case 'ask-menu': return this.#confirm('¿Volver al menú principal? Se perderá el progreso de esta partida.', 'menu');
       case 'cancel-confirm': return this.el.querySelector('.confirm-box')?.remove();
       case 'menu': return h.onMenu();
-      case 'identity': return h.onIdentity(target.dataset.id);
-      case 'identity-voice': return h.onIdentityVoice();
-      case 'identity-cancel': return h.onIdentityCancel();
       default: return undefined;
     }
   }
@@ -138,14 +146,17 @@ export class Screens {
     const tutorialDone = this.settings.get('progress', 'tutorialDone');
     this.#show('menu', `
       <div class="panel">
-        <h1>300: El Paso de las Termópilas
+        <h1 class="menu-title"><span class="logo-wrap"><img class="logo" src="${LOGO}" alt="300: El Paso de las Termópilas" width="176" height="64"></span>
           <small>Estrategia táctica con órdenes de voz</small></h1>
         <p class="lead">Termópilas, 480 a. C. Dirige la falange aliada en el paso estrecho entre la montaña y el mar.
           Cambia de formación a tiempo para resistir cinco oleadas y los decretos del propio Jerjes.</p>
         <div class="menu-actions">
           <button class="btn btn-primary" type="button" data-action="start" ${tutorialDone ? 'data-autofocus' : ''}>Comenzar campaña</button>
+          ${this.#difficultyPicker()}
           <button class="btn" type="button" data-action="tutorial" ${tutorialDone ? '' : 'data-autofocus'}>
             <i class="icon" data-icon="9" aria-hidden="true"></i>Tutorial ${tutorialDone ? '' : '<span class="badge">recomendado</span>'}</button>
+          <button class="btn" type="button" data-action="anopaea" title="Día 3: los persas rodean el paso; ataques por delante y por detrás">
+            <i class="icon" data-icon="12" aria-hidden="true"></i>Escenario: la senda de Anopea</button>
           <div class="btn-grid">
             <button class="btn" type="button" data-action="controls">Controles</button>
             <button class="btn" type="button" data-action="settings"><i class="icon" data-icon="8" aria-hidden="true"></i>Ajustes</button>
@@ -156,9 +167,26 @@ export class Screens {
         </div>
         <p class="voice-note" data-voice-note data-kind="${noteKind}" role="status" aria-live="polite">${esc(note)}</p>
         <p class="fineprint">Se juega entero con voz, con teclado o con los botones en pantalla. El reconocimiento de voz depende del
-          navegador (Chrome o Edge) y puede usar sus servicios en línea; el juego no graba ni guarda audio, solo interpreta las
-          frases de las órdenes. Interpretación lúdica inspirada en un hecho histórico.</p>
+          navegador (Chrome o Edge) y puede usar sus servicios en línea; el juego no graba ni guarda audio: interpreta las frases de las
+          órdenes y estima el tono de tu voz para que Leónidas te trate de «aliada» o «aliado» (se cambia en Ajustes). Interpretación
+          lúdica inspirada en un hecho histórico.</p>
       </div>`, { transparent: true });
+  }
+
+  /** Selector de dificultad del menú: tres botones con estado pulsado. */
+  #difficultyPicker() {
+    const current = this.settings.get('game', 'difficulty');
+    const help = { easy: 'Más tiempo para reaccionar y enemigos más débiles', normal: 'El equilibrio de referencia', hard: 'Avisos más cortos, enemigos más duros y más puntos' };
+    return `<div class="difficulty" role="group" aria-label="Dificultad">
+      <span class="difficulty-label">Dificultad</span>
+      ${Object.values(DIFFICULTY).map((d) => `<button class="btn btn-small" type="button" data-action="difficulty" data-id="${d.id}" aria-pressed="${d.id === current}" title="${esc(help[d.id])}">${esc(d.label)}</button>`).join('')}
+    </div>`;
+  }
+
+  #setDifficulty(id) {
+    if (!DIFFICULTY[id]) return;
+    this.handlers.onSetting('game', 'difficulty', id);
+    for (const btn of this.el.querySelectorAll('[data-action="difficulty"]')) btn.setAttribute('aria-pressed', String(btn.dataset.id === id));
   }
 
   setVoiceNote(note, kind = '') {
@@ -214,6 +242,7 @@ export class Screens {
             ${check('reduceEffects', 'Reducir destellos y partículas', 'Sin parpadeos, sacudidas de cámara ni destellos de golpe; menos partículas.')}
             ${check('highContrast', 'Alto contraste', 'Paneles más oscuros, texto más claro y bordes marcados.')}
             ${check('largeText', 'Texto más grande', 'Amplía el HUD, los botones y los menús.')}
+            ${check('plainText', 'Texto normal (sin fuente pixel)', 'Los párrafos, ajustes y mensajes de Leónidas usan la fuente del sistema, más cómoda para leer.')}
             ${check('longWarnings', 'Avisos de flechas más largos', 'Un 50 % más de tiempo para reaccionar (útil con la voz).')}
             ${check('narration', 'Leer en voz alta los mensajes', 'Leónidas lee las indicaciones del tutorial y de la campaña con la voz del navegador. Mientras habla, el micrófono no acepta órdenes.')}
           </section>
@@ -227,56 +256,24 @@ export class Screens {
             <h3 id="set-voice">Voz</h3>
             <label class="field">Idioma del reconocimiento
               <select data-section="voice" data-key="lang">${LANGS.map(([v, l]) => `<option value="${v}" ${v === voice.lang ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+            <label class="field">Dificultad de la campaña
+              <select data-section="game" data-key="difficulty">${Object.values(DIFFICULTY).map((d) => `<option value="${d.id}" ${d.id === this.settings.get('game', 'difficulty') ? 'selected' : ''}>${d.label}</option>`).join('')}</select></label>
+            <label class="field" title="En automático, la luz avanza con la batalla: del amanecer a la noche.">Iluminación
+              <select data-section="game" data-key="lighting">${Object.entries(LIGHT_SETTING).map(([v, l]) => `<option value="${v}" ${v === this.settings.get('game', 'lighting') ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
             <label class="field">Precisión exigida
               <select data-section="voice" data-key="sensitivity">${Object.entries(VOICE_SENSITIVITY).map(([v, d]) => `<option value="${v}" ${v === voice.sensitivity ? 'selected' : ''}>${d.label}</option>`).join('')}</select></label>
             <button class="btn btn-small" type="button" data-action="voice-test" aria-pressed="false"><i class="icon" data-icon="5" aria-hidden="true"></i><span>Probar micrófono</span></button>
             <p class="voice-note" data-voice-test role="status" aria-live="polite">Di una orden para comprobar cómo la entiende el juego. No se ejecuta nada.</p>
             <label class="field">Leónidas se dirige a ti como
-              <select data-section="player" data-key="identity">${Object.entries(IDENTITIES).map(([v, d]) => `<option value="${v}" ${v === s.get('player', 'identity') ? 'selected' : ''}>${esc(d.label)} («${d.ally}»)</option>`).join('')}</select></label>
+              <select data-section="player" data-key="address">${Object.entries(ADDRESS_OPTIONS).map(([v, l]) => `<option value="${v}" ${v === s.get('player', 'address') ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
             <p class="fineprint">El reconocimiento lo hace el navegador y puede depender de sus servicios en línea. El juego no graba
-              ni guarda audio: solo compara el texto reconocido con la lista cerrada de órdenes.</p>
+              ni guarda audio: compara el texto reconocido con la lista cerrada de órdenes y, en automático, estima el tono de tu voz
+              mientras das las primeras órdenes para elegir entre «aliada» y «aliado» («estratega» si el tono no basta). Ese cálculo
+              se hace en el momento y no se guarda; elige una forma fija si prefieres que no se analice.</p>
           </section>
         </div>
         <div class="btn-row"><button class="btn btn-primary" type="button" data-action="back" data-autofocus>Volver</button></div>
       </div>`);
-  }
-
-  /**
-   * Presentación: Leónidas pregunta cómo dirigirse al jugador. Se responde por
-   * voz («mujer», «hombre», «prefiero no decirlo») o con los botones.
-   */
-  identity({ voiceSupported = true, listening = false, note = '', noteKind = '' } = {}) {
-    const portrait = `${import.meta.env.BASE_URL}assets/images/ui/leonidas.png`;
-    const buttons = Object.entries(IDENTITIES).map(([id, d]) =>
-      `<button class="btn" type="button" data-action="identity" data-id="${id}">${esc(d.label)}</button>`).join('');
-    this.#show('identity', `
-      <div class="panel identity">
-        <div class="identity-head">
-          <img class="tutorial-portrait" src="${portrait}" alt="Leónidas I" width="64" height="64" />
-          <div><h2>Antes de la batalla</h2>
-            <p class="lead">${esc(LEONIDAS.askIdentity)}</p></div>
-        </div>
-        <div class="btn-grid identity-choices">${buttons}</div>
-        <button class="btn btn-small" type="button" data-action="identity-voice" aria-pressed="${listening}" ${voiceSupported ? '' : 'disabled'} data-autofocus>
-          <i class="icon" data-icon="5" aria-hidden="true"></i><span>${listening ? 'Escuchando… responde en voz alta' : 'Responder con la voz'}</span></button>
-        <p class="voice-note" data-identity-note data-kind="${noteKind}" role="status" aria-live="polite">${esc(note)}</p>
-        <p class="fineprint">Solo sirve para que Leónidas se dirija a ti correctamente. El juego no lo deduce del sonido de tu voz:
-          entiende la palabra que dices. Se guarda únicamente en este navegador y puedes cambiarlo en Ajustes.</p>
-        <div class="btn-row"><button class="btn btn-small" type="button" data-action="identity-cancel">Volver al menú</button></div>
-      </div>`);
-  }
-
-  setIdentityNote(note, kind = '', listening) {
-    const el = this.el.querySelector('[data-identity-note]');
-    if (el) {
-      el.textContent = note;
-      el.dataset.kind = kind;
-    }
-    const btn = this.el.querySelector('[data-action="identity-voice"]');
-    if (btn && listening != null) {
-      btn.setAttribute('aria-pressed', String(listening));
-      btn.querySelector('span').textContent = listening ? 'Escuchando… responde en voz alta' : 'Responder con la voz';
-    }
   }
 
   /** Resultado de la prueba de voz dentro de Ajustes. */
@@ -354,35 +351,38 @@ export class Screens {
     const c = stats.commands;
     const totalVolleys = stats.volleysBlocked + stats.volleysTaken;
     const byType = Object.keys(ENEMY_TYPES).map((t) => `${ENEMY_TYPES[t].name}: ${stats.killsByType[t] ?? 0}`).join(' · ');
+    const anopaea = result.scenario === 'anopaea';
+    const waves = anopaea ? ANOPAEA.waves : WAVES;
     const voiceRate = stats.voiceHeard ? `${Math.round((stats.voiceMatched / stats.voiceHeard) * 100)} % de ${stats.voiceHeard}` : 'sin usar';
-    const waveRows = WAVES.map((w, i) => {
+    const waveRows = waves.map((w, i) => {
       const log = stats.waveLog.find((l) => l.index === i);
       return `<tr><td>${i + 1}. ${esc(w.name)}</td><td>${log ? 'Superada' : i === result.wavesCleared && !win ? 'Aquí cedió la línea' : '—'}</td>
         <td>${log ? fmtTime(log.timeMs) : '—'}</td><td>${log?.kills ?? '—'}</td><td>${log?.cohesion ?? '—'}</td></tr>`;
-    }).join('') + `<tr><td>Final. ${esc(XERXES.name)}</td><td>${result.bossDefeated ? 'Ordenó la retirada' : result.bossReached ? 'Aquí cedió la línea' : '—'}</td>
-        <td>${result.bossReached ? fmtTime(result.bossTimeMs) : '—'}</td><td>—</td><td>${result.bossReached ? result.cohesion : '—'}</td></tr>`;
+    }).join('') + (anopaea ? '' : `<tr><td>Final. ${esc(XERXES.name)}</td><td>${result.bossDefeated ? 'Ordenó la retirada' : result.bossReached ? 'Aquí cedió la línea' : '—'}</td>
+        <td>${result.bossReached ? fmtTime(result.bossTimeMs) : '—'}</td><td>—</td><td>${result.bossReached ? result.cohesion : '—'}</td></tr>`);
     this.#show('result', `
       <div class="panel panel-wide ${win ? 'result-victory' : 'result-defeat'}">
+        ${anopaea ? `<p class="result-scenario"><i class="icon" data-icon="12" aria-hidden="true"></i>${esc(ANOPAEA.name)}</p>` : ''}
         <h2>${win ? 'La línea resiste' : 'La línea ha cedido'}</h2>
-        <p class="result-address">${esc(personalize(win ? 'Bien luchado, {aliado}.' : 'Has resistido con honor, {aliado}.', this.settings.get('player', 'identity')))}</p>
+        <p class="result-address">${esc(personalize(win ? 'Bien luchado, {aliado}.' : 'Has resistido con honor, {aliado}.', this.handlers.identity?.()))}</p>
         <p class="lead">${esc(REASONS[result.reason] ?? '')}</p>
         <div class="stats">
-          <div class="stat stat-score"><span>Puntuación</span><b>${stats.score}</b></div>
-          <div class="stat"><span>Oleadas superadas</span><b>${result.wavesCleared} / ${WAVES.length}</b></div>
+          <div class="stat stat-score"><span>Puntuación</span><b>${stats.score}</b><small>Dificultad: ${esc((DIFFICULTY[this.settings.get('game', 'difficulty')] ?? DIFFICULTY.normal).label)}</small></div>
+          <div class="stat"><span>Oleadas superadas</span><b>${result.wavesCleared} / ${waves.length}</b></div>
           <div class="stat"><span>Tiempo</span><b>${fmtTime(result.timeMs)}</b></div>
           <div class="stat"><span>Enemigos repelidos</span><b>${stats.kills}</b><small>${esc(byType)}</small></div>
           <div class="stat"><span>Caídos al mar</span><b>${stats.edgeKills}</b></div>
           <div class="stat"><span>Lluvias de flechas bloqueadas</span><b>${stats.volleysBlocked} / ${totalVolleys}</b></div>
           <div class="stat"><span>Órdenes (voz · teclado · botón)</span><b>${c.voice} · ${c.keyboard} · ${c.button}</b><small>${stats.rejected} rechazadas</small></div>
           <div class="stat"><span>Frases de voz entendidas</span><b>${voiceRate}</b></div>
-          <div class="stat"><span>Determinación de Jerjes</span><b>${result.bossReached ? `${result.bossResolve ?? 0} / ${XERXES.resolveMax}` : 'no llegó'}</b><small>${result.bossDefeated ? 'ordenó la retirada' : result.bossReached ? 'resistió el enfrentamiento' : ''}</small></div>
+          ${anopaea ? '' : `<div class="stat"><span>Determinación de Jerjes</span><b>${result.bossReached ? `${result.bossResolve ?? 0} / ${XERXES.resolveMax}` : 'no llegó'}</b><small>${result.bossDefeated ? 'ordenó la retirada' : result.bossReached ? 'resistió el enfrentamiento' : ''}</small></div>`}
         </div>
         <table class="controls-table waves-table">
           <thead><tr><th>Oleada</th><th>Resultado</th><th>Tiempo</th><th>Bajas</th><th>Cohesión al final</th></tr></thead>
           <tbody>${waveRows}</tbody></table>
-        ${SHORT_NOTE}
+        ${anopaea ? ANOPAEA_NOTE : SHORT_NOTE}
         <div class="btn-row">
-          <button class="btn btn-primary" type="button" data-action="retry" data-autofocus>Reintentar campaña</button>
+          <button class="btn btn-primary" type="button" data-action="retry" data-autofocus>${anopaea ? 'Reintentar escenario' : 'Reintentar campaña'}</button>
           <button class="btn" type="button" data-action="epilogue">Epílogo histórico</button>
           <button class="btn" type="button" data-action="menu">Menú principal</button>
         </div>
@@ -417,7 +417,8 @@ export class Screens {
             <li>La «guardia de élite» es un arquetipo jugable inspirado en la guardia real persa.</li>
             <li>Empujar enemigos al mar es una mecánica del juego; no describe un episodio concreto.</li>
             <li>Jerjes no combatió en persona: Heródoto cuenta que observaba la batalla desde su trono y que llegó a levantarse de él temiendo por su ejército. En el juego es el jefe final y sus «decretos» son mecánicas inventadas. La frase de lucharemos a la sombra se atribuye al espartano Diéneces.</li>
-            <li>Ganar la campaña no cambia el desenlace real.</li>
+            <li>El escenario «La senda de Anopea» recrea el tercer día como un combate por dos frentes; la «media vuelta» es una orden de juego.</li>
+            <li>Ganar la campaña o el escenario no cambia el desenlace real.</li>
           </ul></section>
         </div>
         <p class="fineprint">Fuentes: Heródoto, <i>Historias</i>, libro VII. M. Cartwright, «Battle of Thermopylae» y «Leonidas I of Sparta»,

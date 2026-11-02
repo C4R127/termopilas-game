@@ -9,6 +9,7 @@ export const COMMAND_IDS = Object.freeze({
   RELIEF: 'RELIEF',
   PAUSE: 'PAUSE',
   RESUME: 'RESUME',
+  TURN: 'TURN',
 });
 
 export const COMMANDS = [
@@ -44,6 +45,15 @@ export const COMMANDS = [
     tactical: true,
     icon: 3,
     help: 'La reserva sustituye a la primera línea y recupera resistencia.',
+  },
+  {
+    id: COMMAND_IDS.TURN,
+    label: 'Media vuelta',
+    aliases: ['media vuelta', 'retaguardia', 'girar'],
+    tactical: true,
+    icon: 12,
+    scenario: 'anopaea', // solo existe en el escenario de la senda de Anopea
+    help: 'La falange encara el otro lado (solo en la senda de Anopea).',
   },
   {
     id: COMMAND_IDS.PAUSE,

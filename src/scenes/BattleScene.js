@@ -8,11 +8,13 @@ import { XERXES } from '../data/boss.js';
 import { BattleSimulation } from '../systems/BattleSimulation.js';
 import { EVENTS } from '../systems/EventBus.js';
 import { createBackdrop } from './backdrop.js';
+import { resolveLight } from './lighting.js';
 import { floatText } from './pixelText.js';
 
 const ARROW_GRAVITY = 260;
 const ARROWS_PER_ARCHER = 4;
 const MAX_ARROWS = 64; // reserva de flechas reutilizables (no se crean objetos nuevos en cada descarga)
+const CLASH_EVERY_MS = 280; // ritmo de las chispas del cuerpo a cuerpo
 
 /**
  * Escena de combate: dibuja la simulación (BattleSimulation) y sus eventos.
@@ -26,14 +28,20 @@ export class BattleScene extends Phaser.Scene {
 
   /** Simulación de la campaña. TutorialScene la sustituye por una sin oleadas. */
   createSimulation() {
-    return new BattleSimulation(this.app.state, this.app.bus, { warningScale: this.app.warningScale, boss: XERXES });
+    return new BattleSimulation(this.app.state, this.app.bus, {
+      warningScale: this.app.warningScale,
+      boss: XERXES,
+      difficulty: this.app.settings.get('game', 'difficulty'),
+    });
   }
 
   create() {
     this.app = this.registry.get('app');
     const { bus, state } = this.app;
     this.reduceEffects = this.app.settings.get('access', 'reduceEffects');
-    createBackdrop(this);
+    this.lightCtx = { waveIndex: 0, boss: false };
+    ({ lighting: this.lighting } = createBackdrop(this, { light: this.#lightId() }));
+    this.app.lastLight = this.lighting.id;
 
     this.sim = this.createSimulation();
     this.app.sim = this.sim;
@@ -54,11 +62,19 @@ export class BattleScene extends Phaser.Scene {
       bus.on(EVENTS.ENEMY_DIED, (e) => this.#onDied(e)),
       bus.on(EVENTS.ENEMY_BREACH, (e) => this.#onBreach(e)),
       bus.on(EVENTS.FORMATION_CHANGED, ({ mode }) => this.formation.setMode(mode)),
+      bus.on(EVENTS.FORMATION_TURNED, ({ facing }) => {
+        this.formation.setFacing(facing);
+        this.app.audio.play('relief');
+      }),
       bus.on(EVENTS.VOLLEY_WARNING, (e) => this.#onVolleyWarning(e)),
       bus.on(EVENTS.VOLLEY_FIRED, (e) => this.#onVolleyFired(e)),
       bus.on(EVENTS.VOLLEY_IMPACT, (e) => this.#onVolleyImpact(e)),
       bus.on(EVENTS.PUSH_EXECUTED, (e) => this.#onPush(e)),
       bus.on(EVENTS.GAME_OVER, (e) => this.#onGameOver(e)),
+      bus.on(EVENTS.WAVE_COMPLETED, () => this.formation.cheer()),
+      // Variantes de luz: con la iluminación automática, el día avanza con la batalla.
+      bus.on(EVENTS.WAVE_STARTED, ({ index }) => this.applyLighting({ waveIndex: index })),
+      bus.on(EVENTS.BOSS_STARTED, () => this.applyLighting({ boss: true }, 6000)),
       // Enfrentamiento final con Jerjes.
       bus.on(EVENTS.BOSS_STARTED, () => { this.xerxes = new XerxesView(this); }),
       bus.on(EVENTS.BOSS_DECREE, (e) => this.xerxes?.decree(e)),
@@ -105,11 +121,40 @@ export class BattleScene extends Phaser.Scene {
         this.hpBars.fillStyle(rec.type === 'elite' ? 0xe2b24c : 0xd0533f, 1).fillRect(unit.x - 5, unit.y - 22, w, 1);
       }
     }
-    if (this.app.state.phase === 'playing') this.formation.setEngaged(this.sim.enemies.some((e) => e.x <= LANE.frontX + SPEARS.range));
+    const { phase, facing } = this.app.state;
+    if (phase === 'playing') this.formation.setEngaged(this.sim.enemies.some((e) => e.side === facing && this.sim.approach(e) <= LANE.frontX + SPEARS.range));
+    if (phase === 'playing' && !this.app.state.isPaused) this.#clash(delta);
     // Cada flecha en vuelo se orienta según su velocidad.
     for (const arrow of this.arrows.getMatching('active', true)) {
       if (arrow.flying) arrow.rotation = Math.atan2(arrow.body.velocity.y, arrow.body.velocity.x);
     }
+  }
+
+  /**
+   * Choque del cuerpo a cuerpo: cada poco salta una chispa entre un enemigo
+   * trabado y la falange, y el hoplita de esa fila acusa el golpe.
+   */
+  #clash(delta) {
+    this.clashMs = (this.clashMs ?? 0) + delta;
+    if (this.clashMs < CLASH_EVERY_MS) return;
+    this.clashMs = 0;
+    const fighting = this.sim.enemies.filter((e) => e.inContact && !e.removed && this.units.has(e.id));
+    if (!fighting.length) return;
+    const e = Phaser.Utils.Array.GetRandom(fighting);
+    const unit = this.units.get(e.id);
+    this.burst('spark', 3, unit.x - unit.dir * 7, unit.y - Phaser.Math.Between(7, 13));
+    if (e.side === this.app.state.facing) this.formation.jolt(e.row);
+  }
+
+  #lightId() {
+    return resolveLight(this.app.settings.get('game', 'lighting'), this.scene.key, this.lightCtx);
+  }
+
+  /** Recalcula la luz (cambio de oleada, llegada de Jerjes o ajuste «Iluminación»). */
+  applyLighting(ctx = {}, ms = 4000) {
+    Object.assign(this.lightCtx, ctx);
+    this.lighting.set(this.#lightId(), ms);
+    this.app.lastLight = this.lighting.id;
   }
 
   /** Partículas, reducidas al mínimo con la opción de accesibilidad. */
@@ -126,6 +171,11 @@ export class BattleScene extends Phaser.Scene {
     const unit = this.units.get(enemy.id);
     this.units.delete(enemy.id);
     if (!unit) return;
+    if (enemy.type === 'elite' && cause !== 'edge') {
+      // Cae un guardia real: golpe seco en pantalla.
+      this.shake(120, 0.004);
+      this.burst('spark', 6, unit.x, unit.y - 12);
+    }
     if (cause === 'edge') {
       floatText(this, unit.x, unit.y - 24, '¡Al mar!', 0x9fd3e6);
       this.burst('rock', 5, unit.x, LANE.rowsY[LANE.edgeRow]);
@@ -136,7 +186,7 @@ export class BattleScene extends Phaser.Scene {
   #onBreach({ enemy, breaches, max }) {
     const unit = this.units.get(enemy.id);
     this.units.delete(enemy.id);
-    floatText(this, RANK_X[1], LANE.rowsY[enemy.row] - 26, `¡Brecha! ${breaches}/${max}`, 0xff8a70);
+    floatText(this, this.formation.midX, LANE.rowsY[enemy.row] - 26, `¡Brecha! ${breaches}/${max}`, 0xff8a70);
     this.shake(160, 0.006);
     this.formation.hurt();
     this.app.audio.play('breach');
@@ -168,7 +218,7 @@ export class BattleScene extends Phaser.Scene {
 
   /** Tiro parabólico calculado para caer sobre la falange al terminar el vuelo. */
   #launchArrow(sx, sy, T) {
-    const tx = Phaser.Math.Between(RANK_X[2] - 8, RANK_X[0] + 4);
+    const tx = this.formation.midX + Phaser.Math.Between(RANK_X[2] - RANK_X[1] - 8, RANK_X[0] - RANK_X[1] + 4);
     const ty = Phaser.Utils.Array.GetRandom(LANE.rowsY) - Phaser.Math.Between(8, 14);
     const arrow = this.arrows.get(sx, sy);
     if (!arrow) return; // reserva agotada: se omite la flecha decorativa
@@ -207,10 +257,10 @@ export class BattleScene extends Phaser.Scene {
     if (!blocked) {
       this.formation.hurt();
       this.shake(140, 0.005);
-      floatText(this, RANK_X[1], LANE.rowsY[0] - 34, `-${damage}`, 0xff8a70);
+      floatText(this, this.formation.midX, LANE.rowsY[0] - 34, `-${damage}`, 0xff8a70);
       this.app.audio.play('hit');
     } else {
-      floatText(this, RANK_X[1], LANE.rowsY[0] - 34, 'Bloqueado', 0xecc272);
+      floatText(this, this.formation.midX, LANE.rowsY[0] - 34, 'Bloqueado', 0xecc272);
       this.app.audio.play('blocked');
     }
   }
@@ -218,7 +268,13 @@ export class BattleScene extends Phaser.Scene {
   #onPush({ hits }) {
     this.app.audio.play('push');
     this.shake(90, 0.004);
-    for (const p of this.formation.frontPoints()) this.burst('dust', 4, p.x + 6, p.y);
+    for (const p of this.formation.frontPoints()) {
+      this.burst('dust', 4, p.x + 6 * p.dir, p.y);
+      if (this.reduceEffects) continue;
+      // Onda del empuje: un arco claro que se abre delante de cada fila.
+      const ring = this.add.ellipse(p.x + 5 * p.dir, p.y - 9, 6, 20).setStrokeStyle(1, 0xf3e3c0, 0.9).setDepth(1940);
+      this.tweens.add({ targets: ring, x: ring.x + 14 * p.dir, scaleX: 3.2, scaleY: 1.15, alpha: 0, duration: 280, ease: 'Quad.easeOut', onComplete: () => ring.destroy() });
+    }
     for (const { enemy, fell } of hits) {
       if (!fell) this.burst('dust', 3, enemy.x, LANE.rowsY[enemy.row]);
     }

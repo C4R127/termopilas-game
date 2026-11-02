@@ -8,6 +8,7 @@ const CONFIRM = {
   SPEARS: 'Orden recibida: LANZAS',
   PUSH: 'Orden recibida: EMPUJEN',
   RELIEF: 'Relevo en proceso',
+  TURN: 'Orden recibida: MEDIA VUELTA',
   PAUSE: 'Partida pausada',
   RESUME: 'Partida reanudada',
 };
@@ -20,7 +21,8 @@ const seconds = (ms) => Math.ceil(ms / 1000);
  * se valida la partida, la pausa, el enfriamiento y el estado de la formación.
  */
 export class CommandController {
-  constructor(state, formation, bus) {
+  constructor(state, formation, bus, { allowTurn = false } = {}) {
+    this.allowTurn = allowTurn;
     this.state = state;
     this.formation = formation;
     this.bus = bus;
@@ -87,6 +89,10 @@ export class CommandController {
         if (s.stamina < PUSH.staminaCost) return { ok: false, reason: 'Resistencia insuficiente para empujar' };
         return { ok: true };
       }
+      case C.TURN:
+        if (!this.allowTurn) return { ok: false, reason: 'La media vuelta solo existe en la senda de Anopea' };
+        if (mode === MODES.RELIEF || mode === MODES.PUSH) return { ok: false, reason: 'Espera a que termine la maniobra' };
+        return { ok: true };
       case C.RELIEF: {
         if (mode === MODES.RELIEF) return { ok: false, reason: 'Relevo en proceso' };
         const wait = s.cooldowns.RELIEF - s.simTime;
@@ -119,6 +125,7 @@ export class CommandController {
       case C.SPEARS: this.formation.advanceSpears(); break;
       case C.PUSH: this.formation.startPush(); break;
       case C.RELIEF: this.formation.startRelief(); break;
+      case C.TURN: this.formation.turn(); break;
       default: break;
     }
     return this.#finish(cmd, 'executed', CONFIRM[def.id]);

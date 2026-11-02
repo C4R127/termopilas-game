@@ -42,6 +42,16 @@ document.getElementById('hud-bottom').addEventListener('click', (e) => {
   if (btn) app.sendCommand(btn.dataset.cmd, 'button');
 });
 document.getElementById('pause-btn').addEventListener('click', () => app.togglePause('button'));
+
+// Pantalla completa (sobre todo para móviles y tabletas), si el navegador la ofrece.
+const fsBtn = document.getElementById('fs-btn');
+fsBtn.hidden = !document.fullscreenEnabled;
+fsBtn.addEventListener('click', () => app.toggleFullscreen());
+document.addEventListener('fullscreenchange', () => {
+  const on = !!document.fullscreenElement;
+  fsBtn.setAttribute('aria-pressed', String(on));
+  fsBtn.title = on ? 'Salir de pantalla completa' : 'Pantalla completa';
+});
 document.getElementById('mic-btn').addEventListener('click', () => app.toggleVoice());
 window.addEventListener('pointerdown', () => app.audio.unlock(), { once: true });
 

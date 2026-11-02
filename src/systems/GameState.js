@@ -30,6 +30,7 @@ export class GameState {
     this.phase = 'idle'; // idle | playing | over
     this.formationMode = MODES.SPEARS;
     this.stance = MODES.SPEARS; // postura estable a la que se vuelve tras empuje o relevo
+    this.facing = 'front'; // hacia dónde mira la falange: 'front' (el paso) o 'rear' (Anopea)
     this.cohesion = FORMATION.cohesionMax;
     this.stamina = FORMATION.staminaMax;
     this.morale = FORMATION.moraleStart;
@@ -84,6 +85,7 @@ export class GameState {
       reliefReadyIn: Math.max(0, this.cooldowns.RELIEF - this.simTime),
       pending: this.pending,
       boss: this.boss && { ...this.boss },
+      facing: this.facing,
     };
   }
 }

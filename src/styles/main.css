@@ -15,7 +15,8 @@
   --sea: #2d5672;
   --focus: #ffd36b;
   --font: 'Pixelify Sans', ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  --text: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --text-plain: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --text: var(--font); /* también el texto corrido va en pixel; «Texto normal» en Ajustes lo cambia */
   --icon-size: 24px;
   color-scheme: dark;
 }
@@ -49,7 +50,13 @@ kbd {
   height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Muescas y bordes redondeados de los móviles (viewport-fit=cover). */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
+/* Táctil: sin zoom por doble toque, sin menú contextual al mantener pulsado y sin seleccionar texto. */
+button, .cmd, .hud-top, .hud-bottom { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.hud-top, .hud-bottom, .btn { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html, body { overscroll-behavior: none; }
 .hud-top { grid-row: 1; }
 .stage { grid-row: 2; }
 .hud-bottom { grid-row: 3; }
@@ -61,7 +68,7 @@ kbd {
   width: var(--icon-size);
   height: var(--icon-size);
   background: url('/assets/images/ui/icons.png') no-repeat;
-  background-size: calc(var(--icon-size) * 12) var(--icon-size);
+  background-size: calc(var(--icon-size) * 14) var(--icon-size);
   background-position: calc(var(--icon-size) * var(--i, 0) * -1) 0;
   image-rendering: pixelated;
 }
@@ -77,6 +84,8 @@ kbd {
 .icon[data-icon='9'] { --i: 9; }
 .icon[data-icon='10'] { --i: 10; }
 .icon[data-icon='11'] { --i: 11; }
+.icon[data-icon='12'] { --i: 12; }
+.icon[data-icon='13'] { --i: 13; }
 
 /* ── Escenario y lienzo ─────────────────────────────────────────────────── */
 .stage {
@@ -88,7 +97,9 @@ kbd {
   overflow: hidden;
 }
 .game { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; }
-.game canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.game canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; transition: filter 1.4s ease-out; }
+/* En el menú el paso queda en penumbra y quieto; al empezar la batalla se ilumina de golpe. */
+.app[data-scene='MenuScene'] .game canvas { filter: brightness(0.42) saturate(0.7); transition-duration: 0.6s; }
 .loading { position: absolute; margin: 0; top: calc(50% + 24px); color: var(--muted); }
 .app:not([data-scene='loading']) .loading { display: none; }
 
@@ -222,6 +233,8 @@ kbd {
   background: linear-gradient(#241b14, #2e241c);
   border-top: 2px solid var(--bronze-dark);
 }
+.hud-bottom[data-turn='true'] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.cmd[data-cmd='TURN'][aria-pressed='true'] { border-color: #b77fd1; background: #3a2a44; box-shadow: inset 0 0 0 1px #b77fd1; }
 .cmd {
   position: relative;
   display: grid;
@@ -271,7 +284,21 @@ kbd {
   z-index: 10;
   overflow-y: auto;
 }
-.screen[data-transparent='true'] { background: linear-gradient(90deg, #0d0a08d0 0%, #0d0a0870 55%, #0d0a0820 100%); place-items: center start; }
+/* Menú de inicio: panel centrado sobre el paso, con una viñeta suave que deja ver el escenario alrededor. */
+.screen[data-transparent='true'] { background: radial-gradient(ellipse at center, #0d0a08b8 0%, #0d0a0870 55%, #0d0a0830 100%); place-items: center; }
+/* En ventanas bajas el menú se compacta para caber entero sin barra de desplazamiento. */
+@media (max-height: 820px) {
+  .screen[data-transparent='true'] { padding: 8px 16px; }
+  .screen[data-transparent='true'] .panel { padding: 12px 20px; }
+  .screen[data-transparent='true'] .panel h1 { font-size: 30px; }
+  .screen[data-transparent='true'] .menu-actions { margin: 10px 0 6px; gap: 8px; }
+  .screen[data-transparent='true'] .btn { padding: 7px 14px; }
+  .screen[data-transparent='true'] .fineprint { margin-top: 6px; padding-top: 6px; }
+}
+/* Más bajas aún: el logotipo ya presenta el juego y la entradilla se omite. */
+@media (max-height: 740px) {
+  .screen[data-transparent='true'] .lead { display: none; }
+}
 .panel {
   width: min(560px, 100%);
   background: var(--panel);
@@ -308,7 +335,7 @@ kbd {
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 .btn-row .btn { flex: 1 1 160px; }
 .field { display: flex; gap: 10px; align-items: center; font-family: var(--text); font-size: 14px; color: var(--muted); }
-.field select { font: inherit; background: var(--panel-2); color: var(--cream); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; }
+.field select { max-width: 100%; min-width: 0; font: inherit; background: var(--panel-2); color: var(--cream); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; }
 .voice-note { margin-top: 6px; min-height: 1.4em; font-family: var(--text); font-size: 14px; }
 .voice-note[data-kind='warn'] { color: var(--warn); }
 .voice-note[data-kind='ok'] { color: var(--ok); }
@@ -362,10 +389,32 @@ kbd {
 /* En el tutorial el panel ocupa el cielo; los avisos pasan a la franja del mar. */
 .app[data-scene='TutorialScene'] .alerts { top: auto; bottom: 10px; }
 
+.result-scenario { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; color: #cfa8e0; font-size: 15px; }
+
+/* Logotipo pixel del menú (176 × 64, ampliado ×2 sin suavizado) con un destello que lo recorre. */
+.menu-title { text-align: center; }
+.logo-wrap { position: relative; display: block; width: 352px; max-width: 100%; margin: 0 auto 2px; }
+.logo { display: block; width: 100%; height: auto; image-rendering: pixelated; filter: drop-shadow(3px 3px 0 #000a); }
+.logo-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 44%, #fff4d699 44% 47%, transparent 47% 49%, #fff4d666 49% 50%, transparent 50%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-mask: url('/assets/images/ui/logo.png') 0 0 / 100% 100% no-repeat;
+  mask: url('/assets/images/ui/logo.png') 0 0 / 100% 100% no-repeat;
+  animation: logo-glint 7s steps(44) 1.5s infinite;
+}
+@keyframes logo-glint { 0% { background-position: 100% 0; } 45%, 100% { background-position: 0% 0; } }
+
+/* Selector de dificultad del menú. */
+.difficulty { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 8px; align-items: center; }
+.difficulty-label { font-size: 14px; color: var(--muted); }
+.difficulty .btn[aria-pressed='true'] { border-color: var(--bronze-light); background: #4a3520; }
+
 /* ── Presentación ───────────────────────────────────────────────────────── */
-.identity-head { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
-.identity-head .lead { margin: 4px 0 0; }
-.identity-choices { margin-bottom: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .result-address { margin: 0 0 4px; font-size: 18px; color: var(--cream); }
 
 /* ── Panel del tutorial ─────────────────────────────────────────────────── */
@@ -436,6 +485,7 @@ kbd {
 :root[data-contrast='high'] .cmd[aria-pressed='true'] { background: #5a3a00; outline: 3px solid #ffd36b; }
 :root[data-contrast='high'] .bar { border-color: #fff; }
 :root[data-contrast='high'] :is(.panel, .tutorial) { border-image: none; border: 3px solid #f2f2f2; border-radius: 6px; }
+:root[data-plain-text='true'] { --text: var(--text-plain); }
 :root[data-large-text='true'] :is(.hud-top, .hud-bottom, .panel, .alerts, .tutorial) { zoom: 1.18; }
 :root[data-reduce-effects='true'] *, :root[data-reduce-effects='true'] *::before { animation: none !important; transition: none !important; }
 
@@ -450,6 +500,12 @@ kbd {
   .timeline li { grid-template-columns: 1fr; gap: 2px; }
   .tutorial { grid-template-columns: auto 1fr; }
   .tutorial-actions { grid-column: 1 / -1; grid-auto-flow: column; }
+  .commander { grid-template-columns: auto 1fr auto; }
+  /* Con la quinta orden (media vuelta) los botones se simplifican para caber en una fila. */
+  .hud-bottom[data-turn='true'] .cmd { grid-template-columns: auto 1fr; column-gap: 6px; padding: 6px 8px; }
+  .hud-bottom[data-turn='true'] .cmd :is(small, kbd) { display: none; }
+  .hud-bottom[data-turn='true'] .cmd .icon { --icon-size: 28px; grid-row: auto; }
+  .hud-bottom[data-turn='true'] .cmd-name { font-size: 18px; line-height: 1.05; }
 }
 @media (max-width: 720px) {
   .hud-bottom { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -458,6 +514,126 @@ kbd {
   .hud-mode { min-width: 0; }
   .meter { grid-template-columns: 70px 1fr 26px; }
 }
+/* ── Pantallas táctiles ─────────────────────────────────────────────────── */
+/* Con el dedo no hay teclado: se ocultan los atajos y los botones crecen. */
+@media (pointer: coarse) {
+  .cmd kbd, .mic-btn kbd, .pause-btn kbd, .btn kbd { display: none; }
+  .cmd { min-height: 56px; }
+  .cmd:active { transform: scale(0.97); }
+}
+.fs-btn[aria-pressed='true'] { border-color: var(--bronze-light); }
+.rotate-hint { display: none; }
+
+/* Móvil en horizontal: las órdenes pasan a una columna a la derecha y la barra
+   superior se reduce a una línea para dejar al campo de batalla toda la altura. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .app { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); }
+  .hud-top { grid-column: 1 / -1; flex-wrap: nowrap; gap: 6px; padding: 4px 8px; }
+  .stage { grid-column: 1; grid-row: 2; }
+  .hud-bottom, .hud-bottom[data-turn='true'] {
+    grid-column: 2;
+    grid-row: 2;
+    width: clamp(112px, 17vw, 150px);
+    grid-template-columns: 1fr;
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 6px;
+    padding: 6px;
+    border-top: 0;
+    border-left: 2px solid var(--bronze-dark);
+  }
+  .cmd { min-height: 0; padding: 4px 8px; grid-template-columns: auto 1fr; grid-template-rows: auto; column-gap: 6px; }
+  .cmd .icon { --icon-size: 24px; grid-row: auto; }
+  .cmd-name { font-size: 15px; line-height: 1.05; }
+  .cmd small, .cmd kbd { display: none; }
+  .hud-block { padding: 3px 6px; }
+  .hud-wave { flex: 0 0 auto; display: grid; grid-template-columns: auto 52px; align-items: center; column-gap: 6px; }
+  .hud-wave .hud-label, .hud-wave .hud-sub { display: none; }
+  .hud-big { font-size: 18px; }
+  .hud-big span { font-size: 12px; }
+  .hud-boss { flex: 0 1 190px; }
+  .hud-boss .hud-label { display: none; }
+  .hud-boss-head { font-size: 13px; }
+  .hud-formation { order: 0; flex: 1 1 auto; flex-basis: auto; gap: 8px; }
+  .hud-mode { min-width: 0; gap: 4px; }
+  .hud-mode .hud-label { display: none; }
+  .hud-mode .icon { --icon-size: 22px; }
+  .hud-mode b { font-size: 14px; }
+  .meters { min-width: 110px; gap: 1px; }
+  .meter { grid-template-columns: 58px 1fr 22px; gap: 4px; font-size: 10px; }
+  .meter b { font-size: 11px; }
+  .meter .bar { height: 6px; }
+  .hud-breaches { font-size: 11px; }
+  .hud-voice { flex: 0 0 auto; }
+  .voice-info, .mic-text, .pause-btn span, .mic-btn kbd, .pause-btn kbd { display: none; }
+  .mic-btn, .pause-btn { padding: 4px 6px; }
+  .alerts { top: 4px; gap: 3px; }
+  .alert { font-size: 13px; padding: 3px 10px; }
+  .alert[data-kind='danger'] { font-size: 14px; }
+  .alert .icon { --icon-size: 18px; }
+  .tutorial:not(.commander) { top: 4px; gap: 8px; padding: 6px 8px; }
+  .tutorial .tutorial-portrait { width: 36px; height: 36px; }
+  .tutorial-text { font-size: 13px; line-height: 1.3; }
+  .tutorial-hint { font-size: 12px; margin-top: 2px; }
+  .commander { bottom: 4px; gap: 8px; padding: 4px 8px; grid-template-columns: auto 1fr auto; }
+  .commander .narration-btn { min-width: 32px; padding: 4px 6px; }
+  .commander .tutorial-portrait { width: 30px; height: 30px; }
+  .commander-text { font-size: 12px; line-height: 1.25; }
+  /* Menú y pantallas: más compactos para caber en poca altura. */
+  .screen { padding: 6px 12px; }
+  .panel { padding: 10px 16px; }
+  .panel h1 { font-size: 24px; }
+  .panel h2 { font-size: 22px; }
+  .screen[data-transparent='true'] { padding: 2px 12px; }
+  .screen[data-transparent='true'] .panel { width: min(680px, 100%); padding: 8px 16px; }
+  .screen[data-transparent='true'] .panel h1 { font-size: 24px; }
+  .logo-wrap { width: 176px; }
+  .screen[data-transparent='true'] .lead { display: none; }
+  .screen[data-transparent='true'] .menu-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 8px 0 4px; gap: 6px; }
+  .menu-actions > .btn-primary, .menu-actions > .difficulty, .menu-actions > .btn-grid { grid-column: 1 / -1; }
+  .menu-actions .btn-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .screen[data-transparent='true'] .btn { padding: 6px 10px; font-size: 15px; }
+  .screen[data-transparent='true'] .fineprint { font-size: 10px !important; line-height: 1.3; margin-top: 4px; padding-top: 4px; }
+  .screen[data-transparent='true'] .panel h1 small { margin-top: 0; }
+  .screen[data-transparent='true'] .voice-note { min-height: 0; margin: 0; }
+}
+
+/* Móvil en vertical: las órdenes en dos columnas grandes y una sugerencia para girar. */
+@media (orientation: portrait) and (max-width: 600px) {
+  .hud-top { padding: 4px 6px; gap: 4px; }
+  .hud-wave { flex: 1 1 110px; }
+  .hud-voice { flex: 0 0 auto; }
+  .voice-info, .mic-text, .pause-btn span { display: none; }
+  .hud-formation { gap: 8px; }
+  .meters { min-width: 0; }
+  .meter { grid-template-columns: 64px 1fr 24px; gap: 4px; font-size: 11px; }
+  .hud-breaches { font-size: 11px; white-space: normal; text-align: center; }
+  .alerts { top: 40px; }
+  .hud-bottom { padding: 8px; gap: 8px; }
+  .hud-bottom[data-turn='true'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hud-bottom[data-turn='true'] .cmd[data-cmd='TURN'] { grid-column: 1 / -1; }
+  .cmd { min-height: 64px; }
+  .cmd small { display: none; }
+  .app:is([data-scene='BattleScene'], [data-scene='TutorialScene'], [data-scene='AnopaeaScene']) .rotate-hint {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    width: max-content;
+    max-width: 92%;
+    margin: 0;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #1d1611e6;
+    color: var(--muted);
+    font-size: 13px;
+    pointer-events: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

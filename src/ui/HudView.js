@@ -70,10 +70,16 @@ export class HudView {
       this.el.mode.textContent = MODE_LABELS[mode];
       this.el.modeIcon.dataset.icon = MODE_ICON[mode];
       this.formationBlock.dataset.mode = mode;
-      for (const [id, btn] of Object.entries(this.buttons)) btn.setAttribute('aria-pressed', String(id === mode));
+      for (const [id, btn] of Object.entries(this.buttons)) if (id !== 'TURN') btn.setAttribute('aria-pressed', String(id === mode));
     });
     this.#cooldown('PUSH', snap.pushReadyIn, PUSH.cooldownMs, 'Empuje listo', 'Empuje en enfriamiento');
     this.#cooldown('RELIEF', snap.reliefReadyIn, RELIEF.cooldownMs, 'Relevo disponible', 'Relevo no disponible');
+    this.#set('facing', snap.facing, (facing) => {
+      const rear = facing === 'rear';
+      this.buttons.TURN.setAttribute('aria-pressed', String(rear));
+      this.buttons.TURN.querySelector('[data-state]').textContent = rear ? 'Mirando a la senda' : 'Mirando al paso';
+      this.formationBlock.dataset.facing = facing;
+    });
     const exhausted = snap.formationMode === 'EXHAUSTED';
     this.#set('exhausted', exhausted, (ex) => {
       this.buttons.PUSH.dataset.blocked = String(ex);
@@ -172,6 +178,13 @@ export class HudView {
     for (const [id, btn] of Object.entries(this.buttons)) btn.querySelector('kbd').textContent = labelOf(keys[id]);
     this.micBtn.querySelector('kbd').textContent = labelOf(keys.VOICE);
     document.querySelector('#pause-btn kbd').textContent = labelOf(keys.PAUSE);
+  }
+
+  /** La orden de media vuelta solo aparece en el escenario de la senda de Anopea. */
+  setTurnAvailable(available) {
+    this.buttons.TURN.hidden = !available;
+    this.bottom.dataset.turn = String(available);
+    this.cache.delete('facing');
   }
 
   /** En el tutorial la barra superior indica pasos en lugar de oleadas. */

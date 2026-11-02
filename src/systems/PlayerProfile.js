@@ -1,39 +1,44 @@
-import { normalize } from './VoiceCommandManager.js';
-
 /**
- * Quién dirige la falange. El jugador lo dice (por voz o con un botón); el
- * juego no lo deduce del sonido de la voz. Solo se usa para que Leónidas se
- * dirija a la persona correctamente y se guarda únicamente en el navegador.
+ * Cómo se dirige Leónidas a quien juega. En automático se estima por el tono
+ * de la voz al dar las órdenes (ver PitchSensor); también se puede fijar en
+ * Ajustes. Solo cambia la forma de trato: «aliada», «aliado» o «estratega».
  */
 export const IDENTITIES = {
-  female: { label: 'Mujer', ally: 'aliada' },
-  male: { label: 'Hombre', ally: 'aliado' },
-  unspecified: { label: 'Prefiero no decirlo', ally: 'estratega' },
+  female: { label: 'Aliada', ally: 'aliada' },
+  male: { label: 'Aliado', ally: 'aliado' },
+  unspecified: { label: 'Estratega', ally: 'estratega' },
 };
 
-// Respuestas reconocidas por voz (tabla cerrada, como las órdenes).
-const ANSWERS = {
-  female: ['mujer', 'femenino', 'aliada'],
-  male: ['hombre', 'masculino', 'aliado', 'varon'],
-  unspecified: ['prefiero no decirlo', 'no decirlo', 'prefiero no', 'neutro', 'otro', 'ninguno'],
+/** Opciones del ajuste «Leónidas se dirige a ti como». */
+export const ADDRESS_OPTIONS = {
+  auto: 'Automático (por el tono de voz)',
+  female: 'Aliada',
+  male: 'Aliado',
+  unspecified: 'Estratega',
 };
 
 /**
- * Interpreta la respuesta hablada a «¿cómo debo dirigirme a ti?».
- * @returns {{id: 'female'|'male'|'unspecified'|null, reason?: 'empty'|'unknown'|'ambiguous'}}
+ * Umbrales de la frecuencia fundamental mediana (Hz). Las voces graves suelen
+ * quedar por debajo de 155 Hz y las agudas por encima de 175 Hz; entre medias
+ * el tono no basta para decidir y Leónidas usa la forma neutra.
  */
-export function matchIdentity(transcript) {
-  const text = normalize(transcript);
-  if (!text) return { id: null, reason: 'empty' };
-  const padded = ` ${text} `;
-  // «Prefiero no decirlo» gana aunque la frase nombre otra opción («no quiero decir si hombre o mujer»).
-  if (ANSWERS.unspecified.some((a) => padded.includes(` ${a} `))) return { id: 'unspecified' };
-  const found = ['female', 'male'].filter((id) => ANSWERS[id].some((a) => padded.includes(` ${a} `)));
-  if (found.length === 1) return { id: found[0] };
-  return { id: null, reason: found.length > 1 ? 'ambiguous' : 'unknown' };
+export const PITCH_THRESHOLDS = { low: 155, high: 175 };
+
+/** Forma de trato a partir del tono medio de la voz. */
+export function identityFromPitch(medianHz) {
+  if (!Number.isFinite(medianHz)) return 'unspecified';
+  if (medianHz < PITCH_THRESHOLDS.low) return 'male';
+  if (medianHz > PITCH_THRESHOLDS.high) return 'female';
+  return 'unspecified';
 }
 
-/** Sustituye {aliado} / {Aliado} por la forma de trato elegida. */
+/** Trato efectivo: el fijado en Ajustes o, en automático, el detectado (neutro hasta entonces). */
+export function resolveIdentity(address, detected) {
+  if (IDENTITIES[address]) return address;
+  return IDENTITIES[detected] ? detected : 'unspecified';
+}
+
+/** Sustituye {aliado} / {Aliado} por la forma de trato. */
 export function personalize(text, identity = 'unspecified') {
   const ally = (IDENTITIES[identity] ?? IDENTITIES.unspecified).ally;
   return String(text)

@@ -39,6 +39,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('arrow', 'images/effects/arrow.png');
     this.load.spritesheet('particles', 'images/effects/particles.png', { frameWidth: 4, frameHeight: 4 });
     this.load.spritesheet('icons', 'images/ui/icons.png', { frameWidth: 12, frameHeight: 12 });
+    this.load.image('icon-plate', 'images/ui/icon-plate.png');
     this.load.image('font-pixel', 'fonts/pixel-3x5.png');
     this.load.json('font-pixel-def', 'fonts/pixel-3x5.json');
   }

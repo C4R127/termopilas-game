@@ -26,9 +26,8 @@ export const LEONIDAS = {
   },
   bossPhase: '¡Jerjes se ha levantado de su trono! Teme por su ejército: no cedáis ahora.',
   victoryXerxes: 'Jerjes ordena la retirada. Hoy el paso es nuestro, {aliado}.',
-  // Presentación: se pregunta al jugador cómo dirigirse a él antes de su primera batalla.
-  askIdentity: 'Antes de la batalla, dime: ¿cómo debo dirigirme a ti? Responde «mujer», «hombre» o «prefiero no decirlo».',
-  identityDone: 'Entendido, {aliado}. Ocupa tu puesto en la falange.',
+  // Tras las primeras órdenes de voz, cuando ya sabe cómo dirigirse al jugador por el tono.
+  voiceRecognized: 'Ya reconozco tu voz, {aliado}. Sigue dando así las órdenes.',
 };
 
 export const LOW_COHESION = 35; // umbral del aviso de cerrar filas

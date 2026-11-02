@@ -74,7 +74,7 @@ export class WaveManager {
         const rows = group.rows ?? [1];
         const n = this.progress[i];
         const type = group.type === 'mixed' ? group.mix[n % group.mix.length] : group.type;
-        spawns.push({ type, row: rows[n % rows.length] });
+        spawns.push({ type, row: rows[n % rows.length], side: group.side ?? 'front' });
         this.progress[i]++;
       }
       if (this.progress[i] < group.count) pending = true;

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { RELIEF } from '../config/balance.js';
 import { RANK_X } from '../entities/FormationView.js';
+import { ANOPAEA } from '../data/anopaea.js';
 import { CommanderMessages } from '../systems/CommanderMessages.js';
 import { EVENTS } from '../systems/EventBus.js';
 import { pixelText, toPixelText } from './pixelText.js';
@@ -24,6 +25,7 @@ export class HUDScene extends Phaser.Scene {
     this.ready = { PUSH: true, RELIEF: true };
     this.volleyAlert = null;
     this.eliteWarned = -1;
+    this.flankWarned = new Set(); // lado y oleada de los avisos de flanco ya dados
 
     // Banda de oleada en el lienzo.
     this.band = this.add.rectangle(160, 66, 320, 15, 0x120d0a, 0.75).setVisible(false);
@@ -41,6 +43,10 @@ export class HUDScene extends Phaser.Scene {
     this.warn.add(this.warnBar);
 
     this.offs = [
+      bus.on(EVENTS.ENEMY_SPAWNED, ({ enemy }) => this.#flankNotice(enemy)),
+      bus.on(EVENTS.FORMATION_TURNED, ({ facing }) => {
+        hud.alert(facing === 'rear' ? 'La falange encara la senda de Anopea' : 'La falange encara el paso', 'ok', 1600, { icon: 12 });
+      }),
       bus.on(EVENTS.ENEMY_SPAWNED, ({ enemy }) => {
         // Primer guardia de élite de cada oleada: aviso con la táctica a seguir.
         const wave = this.app.state.waveIndex;
@@ -114,7 +120,9 @@ export class HUDScene extends Phaser.Scene {
       }),
     ];
     // En la campaña, Leónidas comenta la batalla (en el tutorial ya guía su panel).
-    this.commander = this.app.battleKey === 'BattleScene' ? new CommanderMessages(bus, this.app.state, ({ text }) => this.app.say(text)) : null;
+    const key = this.app.battleKey;
+    const script = key === 'AnopaeaScene' ? { intro: ANOPAEA.intro, victory: ANOPAEA.victory, rearAlert: ANOPAEA.rearAlert } : {};
+    this.commander = key === 'TutorialScene' ? null : new CommanderMessages(bus, this.app.state, ({ text }) => this.app.say(text), script);
     this.commander?.start();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -164,6 +172,18 @@ export class HUDScene extends Phaser.Scene {
     }
     this.#readyNotice('PUSH', snap.pushReadyIn, 'Empuje listo', 2);
     this.#readyNotice('RELIEF', snap.reliefReadyIn, 'Relevo disponible', 3);
+  }
+
+  /** Enemigos por el lado al que no mira la falange: aviso una vez por oleada y lado. */
+  #flankNotice(enemy) {
+    const { facing, waveIndex } = this.app.state;
+    if (!this.app.sim?.commands.allowTurn || enemy.side === facing) return;
+    const id = `${waveIndex}-${enemy.side}`;
+    if (this.flankWarned.has(id)) return;
+    this.flankWarned.add(id);
+    const text = enemy.side === 'rear' ? '¡Enemigos por la senda, a nuestra espalda! Ordena MEDIA VUELTA' : '¡Enemigos en el paso! MEDIA VUELTA para encararlos';
+    this.app.hud.alert(text, 'danger', 3200, { icon: 12 });
+    this.app.audio.play('warning');
   }
 
   /** Avisa una vez cuando una orden con enfriamiento vuelve a estar disponible. */

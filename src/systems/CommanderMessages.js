@@ -11,8 +11,10 @@ export class CommanderMessages {
    * @param {import('./EventBus.js').EventBus} bus
    * @param {import('./GameState.js').GameState} state
    * @param {(msg: {id: string, text: string}) => void} onMessage
+   * @param {{intro?: string, victory?: string, rearAlert?: string}} [script] textos propios de un escenario
    */
-  constructor(bus, state, onMessage) {
+  constructor(bus, state, onMessage, { intro = LEONIDAS.intro, victory = LEONIDAS.victory, rearAlert = null } = {}) {
+    this.script = { intro, victory };
     this.state = state;
     this.onMessage = onMessage;
     this.said = new Set(); // avisos ya dados en la oleada actual
@@ -32,9 +34,16 @@ export class CommanderMessages {
       }),
       bus.on(EVENTS.GAME_OVER, ({ victory, reason }) => {
         if (!victory) this.#say('defeat', LEONIDAS.defeat);
-        else this.#say('victory', reason === 'xerxes' ? LEONIDAS.victoryXerxes : LEONIDAS.victory);
+        else this.#say('victory', reason === 'xerxes' ? LEONIDAS.victoryXerxes : this.script.victory);
       }),
       bus.on(EVENTS.BOSS_STARTED, () => this.#say('boss', LEONIDAS.bossIntro)),
+      // Senda de Anopea: la primera vez que llegan por la espalda.
+      bus.on(EVENTS.ENEMY_SPAWNED, ({ enemy }) => {
+        if (rearAlert && enemy.side === 'rear' && state.facing !== 'rear' && !this.rearSaid) {
+          this.rearSaid = true;
+          this.#say('rear', rearAlert);
+        }
+      }),
       bus.on(EVENTS.BOSS_DECREE, ({ ids }) => this.#say(`decree-${ids.join('+')}`, ids.map((id) => LEONIDAS.decrees[id]).join(' '))),
       bus.on(EVENTS.BOSS_PHASE, ({ phase }) => {
         this.said.clear(); // en cada fase del enfrentamiento los avisos vuelven a estar disponibles
@@ -45,7 +54,7 @@ export class CommanderMessages {
 
   /** Parte de Leónidas al empezar la campaña. */
   start() {
-    this.#say('intro', LEONIDAS.intro);
+    this.#say('intro', this.script.intro);
   }
 
   /** Comprobaciones periódicas del estado (las llama HUDScene). */

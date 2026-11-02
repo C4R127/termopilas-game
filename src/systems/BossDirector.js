@@ -34,7 +34,10 @@ export class BossDirector {
     const st = this.state;
     st.cohesion = Math.min(100, st.cohesion + this.cfg.restore.cohesion);
     st.stamina = Math.max(st.stamina, this.cfg.restore.stamina);
-    this.state.boss = { resolve: this.cfg.resolveMax, max: this.cfg.resolveMax, phase: 0, decree: null, decreeName: null, standing: false, startedAt: t };
+    // La determinación de Jerjes escala con la dificultad; los umbrales de fase, en proporción.
+    this.scale = this.sim.diff?.bossResolve ?? 1;
+    const max = Math.round(this.cfg.resolveMax * this.scale);
+    this.state.boss = { resolve: max, max, phase: 0, decree: null, decreeName: null, standing: false, startedAt: t };
     const loss = this.cfg.resolveLoss;
     this.offs = [
       this.bus.on(EVENTS.ENEMY_DIED, ({ enemy, cause }) => {
@@ -139,7 +142,7 @@ export class BossDirector {
     b.resolve = Math.max(0, Math.min(b.max, b.resolve + delta));
     this.bus.emit(EVENTS.BOSS_RESOLVE, { resolve: b.resolve, delta, reason });
     // Umbrales: Jerjes se levanta del trono y endurece los decretos.
-    const next = this.cfg.phaseThresholds.filter((th) => b.resolve <= th).length;
+    const next = this.cfg.phaseThresholds.filter((th) => b.resolve <= th * this.scale).length;
     if (next > b.phase) {
       b.phase = next;
       b.standing = true;

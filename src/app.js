@@ -4,7 +4,8 @@ import { AudioManager } from './systems/AudioManager.js';
 import { EventBus, EVENTS } from './systems/EventBus.js';
 import { GameState } from './systems/GameState.js';
 import { Narrator } from './systems/Narrator.js';
-import { IDENTITIES, matchIdentity, personalize } from './systems/PlayerProfile.js';
+import { PitchProfile, PitchSensor } from './systems/PitchSensor.js';
+import { IDENTITIES, personalize, resolveIdentity } from './systems/PlayerProfile.js';
 import { keyLabel, SettingsStore, VOICE_SENSITIVITY } from './systems/SettingsStore.js';
 import { TUTORIAL_EVENT } from './systems/TutorialDirector.js';
 import { VoiceCommandManager } from './systems/VoiceCommandManager.js';
@@ -13,7 +14,7 @@ import { HudView } from './ui/HudView.js';
 import { Screens } from './ui/Screens.js';
 import { TutorialView } from './ui/TutorialView.js';
 
-const BATTLE_SCENES = ['BattleScene', 'TutorialScene'];
+const BATTLE_SCENES = ['BattleScene', 'TutorialScene', 'AnopaeaScene'];
 
 /**
  * Composición de la aplicación: estado, bus de eventos, ajustes, voz, audio y
@@ -27,6 +28,8 @@ export function createApp() {
   const hud = new HudView(document);
   const root = document.documentElement;
   const appEl = document.getElementById('app');
+
+  const coarsePointer = window.matchMedia('(pointer: coarse)');
 
   const stopScenes = (keys) => {
     const scenes = app.game.scene;
@@ -42,9 +45,11 @@ export function createApp() {
     game: null,
     sim: null,
     tutorial: null,
-    battleKey: null, // escena de combate activa: BattleScene o TutorialScene
+    battleKey: null, // escena de combate activa: BattleScene, TutorialScene o AnopaeaScene
     probing: false, // comprobación del permiso desde el menú
     voiceTest: false, // prueba de voz desde Ajustes
+    detectedIdentity: null, // trato estimado por el tono de voz en esta sesión (no se guarda)
+    voiceDecided: false, // en esta batalla ya se decidió el trato: se deja de analizar el tono
 
     get inBattle() {
       return BATTLE_SCENES.includes(state.currentScene) && state.phase === 'playing';
@@ -68,6 +73,7 @@ export function createApp() {
       hud.show(false);
       tutorialView.show(false);
       voice.stop();
+      pitch.stop();
       audio.playMusic('menu');
       this.renderMenu();
     },
@@ -93,63 +99,52 @@ export function createApp() {
     },
 
     startTutorial() {
-      this.beginWithIdentity('TutorialScene');
+      this.beginBattle('TutorialScene');
     },
 
     startCampaign() {
-      this.beginWithIdentity('BattleScene');
+      this.beginBattle('BattleScene');
     },
 
-    // ── Presentación: el jugador dice cómo quiere que se le trate ─────────
-    /** Antes de la primera batalla, Leónidas pregunta cómo dirigirse al jugador. */
-    beginWithIdentity(key) {
+    /** Escenario histórico del día 3: la senda de Anopea. */
+    startAnopaea() {
+      this.beginBattle('AnopaeaScene');
+    },
+
+    /** Desde un botón del menú: pantalla completa en táctil y a la batalla. */
+    beginBattle(key) {
       audio.unlock();
-      if (settings.get('player', 'asked')) {
-        this.startBattle(key);
-        return;
-      }
-      this.pendingStart = key;
-      screens.identity({ voiceSupported: voice.supported });
-      this.narrate(LEONIDAS.askIdentity);
-      // Si el micrófono ya está permitido, se escucha la respuesta directamente.
-      if (state.voiceEnabled && voice.supported) this.listenIdentity();
+      this.touchFullscreen();
+      this.startBattle(key);
     },
 
-    listenIdentity() {
-      if (!voice.supported) return;
-      if (this.identityListening) {
-        this.identityListening = false;
-        voice.stop();
-        screens.setIdentityNote('', '', false);
-        return;
-      }
-      this.identityListening = true;
-      screens.setIdentityNote('Di «mujer», «hombre» o «prefiero no decirlo».', '', true);
-      voice.start();
+    // ── Trato de Leónidas según el tono de voz ────────────────────────────
+    /** Forma de trato actual: la fijada en Ajustes o la estimada por la voz. */
+    identity() {
+      return resolveIdentity(settings.get('player', 'address'), this.detectedIdentity);
     },
 
-    chooseIdentity(id) {
-      if (!IDENTITIES[id]) return;
-      settings.set('player', 'identity', id);
-      settings.set('player', 'asked', true);
-      if (this.identityListening) {
-        this.identityListening = false;
-        voice.stop();
-      }
-      const text = personalize(LEONIDAS.identityDone, id);
-      screens.setIdentityNote(text, 'ok', false);
-      this.narrate(LEONIDAS.identityDone);
-      const key = this.pendingStart ?? 'BattleScene';
-      this.pendingStart = null;
-      setTimeout(() => this.startBattle(key), 1400);
+    /**
+     * El tono solo se analiza en batalla, con la voz activa, el trato en
+     * automático y mientras no se haya decidido en esta batalla.
+     */
+    syncPitch() {
+      const wanted = this.inBattle && voice.wanted && settings.get('player', 'address') === 'auto' && !this.voiceDecided;
+      if (wanted) pitch.start();
+      else pitch.stop();
     },
 
-    cancelIdentity() {
-      this.identityListening = false;
-      this.pendingStart = null;
-      voice.stop();
-      narrator.stop();
-      this.renderMenu();
+    /** El reconocedor oyó una frase del jugador: su tono cuenta para decidir el trato. */
+    onPlayerSpoke() {
+      if (!pitch.running) return;
+      pitchProfile.commitUtterance(performance.now());
+      const id = pitchProfile.decide();
+      if (!id) return;
+      this.detectedIdentity = id;
+      this.voiceDecided = true;
+      this.syncPitch();
+      hud.alert(`Leónidas te reconoce por la voz: «${IDENTITIES[id].ally}»`, 'info', 2600, { icon: 5 });
+      if (this.battleKey !== 'TutorialScene') this.say(LEONIDAS.voiceRecognized);
     },
 
     /** Llamado por BattleScene/TutorialScene al crear la partida. */
@@ -160,16 +155,22 @@ export function createApp() {
       hud.show(true);
       hud.setWaveCaption(key === 'TutorialScene' ? 'Tutorial' : 'Oleada');
       hud.setBoss(null);
+      hud.setTurnAvailable(key === 'AnopaeaScene');
       hud.el.lastCommand.textContent = 'Última orden: —';
       tutorialView.show(key === 'TutorialScene');
       audio.playMusic('battle');
       audio.setIntensity(0);
       if (state.voiceEnabled) voice.start();
       else hud.voiceStatus(voice.status, voice.message, false);
+      // Cada batalla vuelve a escuchar el tono: puede jugar otra persona.
+      this.voiceDecided = false;
+      pitchProfile.reset();
+      this.syncPitch();
     },
 
     showResult(result) {
       voice.stop();
+      pitch.stop();
       commanderView.hide();
       this.setScene('ResultScene');
       hud.show(false);
@@ -180,6 +181,28 @@ export function createApp() {
     goToMenu() {
       stopScenes(['HUDScene', 'ResultScene', ...BATTLE_SCENES]);
       this.game.scene.start('MenuScene');
+    },
+
+    // ── Pantallas táctiles ────────────────────────────────────────────────
+    /**
+     * En móviles y tabletas la batalla pasa a pantalla completa y, si el navegador
+     * lo permite, se fija la orientación horizontal. Debe llamarse desde un toque.
+     */
+    touchFullscreen() {
+      if (!coarsePointer.matches || !document.fullscreenEnabled || document.fullscreenElement) return;
+      document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+        .then(() => screen.orientation?.lock?.('landscape'))
+        .catch(() => {}); // sin permiso o sin bloqueo de orientación: se sigue jugando igual
+    },
+
+    toggleFullscreen() {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+    },
+
+    /** Vibración breve en pantallas táctiles (se omite con «Reducir efectos»). */
+    buzz(pattern) {
+      if (coarsePointer.matches && !settings.get('access', 'reduceEffects')) navigator.vibrate?.(pattern);
     },
 
     // ── Órdenes ───────────────────────────────────────────────────────────
@@ -256,14 +279,14 @@ export function createApp() {
     // ── Leónidas y lectura en voz alta ────────────────────────────────────
     /** Mensaje de Leónidas en la campaña (panel y, si está activada, lectura en voz alta). */
     say(text) {
-      commanderView.show(personalize(text, settings.get('player', 'identity')));
+      commanderView.show(personalize(text, this.identity()));
       this.narrate(text);
     },
 
     narrate(text) {
       const audioSet = settings.get('audio');
       if (!settings.get('access', 'narration') || audioSet.muted) return;
-      narrator.speak(personalize(text, settings.get('player', 'identity')), { volume: audioSet.master });
+      narrator.speak(personalize(text, this.identity()), { volume: audioSet.master });
     },
 
     toggleNarration() {
@@ -282,18 +305,11 @@ export function createApp() {
     lang: settings.get('voice', 'lang'),
     minConfidence: VOICE_SENSITIVITY[settings.get('voice', 'sensitivity')].minConfidence,
     onCommand: (id, { transcript }) => {
-      if (app.identityListening) return; // en la presentación solo cuenta la respuesta
       if (app.voiceTest || !app.inBattle) return;
       app.sendCommand(id, 'voice', transcript);
     },
     onHeard: (e) => {
       if (e.status === 'narration') return; // lo oído era la propia narración
-      if (app.identityListening) {
-        const m = matchIdentity(e.transcript);
-        if (m.id) app.chooseIdentity(m.id);
-        else screens.setIdentityNote(`«${e.transcript}»: ${m.reason === 'ambiguous' ? 'has dicho más de una opción' : 'no te he entendido'}. Di «mujer», «hombre» o «prefiero no decirlo».`, 'warn');
-        return;
-      }
       if (app.voiceTest) {
         const label = e.id ? getCommand(e.id).label.toUpperCase() : null;
         const why = { unknown: 'no es una orden', ambiguous: 'contiene varias órdenes', 'low-confidence': 'no se entendió con claridad', repeat: 'repetida' }[e.status];
@@ -302,6 +318,7 @@ export function createApp() {
         return;
       }
       if (!app.inBattle) return;
+      app.onPlayerSpoke();
       if (e.status !== 'repeat') state.stats.voiceHeard++;
       if (e.status === 'matched') state.stats.voiceMatched++;
       else {
@@ -321,13 +338,6 @@ export function createApp() {
         }
         return;
       }
-      if (app.identityListening) {
-        if (status === 'error') {
-          app.identityListening = false;
-          screens.setIdentityNote(`${message} Elige una opción con los botones.`, 'warn', false);
-        }
-        return;
-      }
       if (state.currentScene === 'MenuScene' && app.probing) {
         if (status === 'listening') {
           app.probing = false;
@@ -340,22 +350,27 @@ export function createApp() {
       } else if (status === 'error' && app.inBattle) {
         hud.alert(`${message} Los botones y el teclado siguen activos.`, 'warn', 4000);
       }
+      app.syncPitch();
     },
   });
   app.voice = voice;
 
+  // Tono de voz para el trato de Leónidas (en memoria; no se graba ni se guarda audio).
+  const pitchProfile = new PitchProfile();
+  const pitch = new PitchSensor({ onFrame: (hz, t) => pitchProfile.addFrame(t, hz) });
+  bus.on(EVENTS.GAME_OVER, () => pitch.stop());
+
   const screens = new Screens(document.getElementById('screen'), settings, {
     onStart: () => app.startCampaign(),
     onTutorial: () => app.startTutorial(),
-    onIdentity: (id) => app.chooseIdentity(id),
-    onIdentityVoice: () => app.listenIdentity(),
-    onIdentityCancel: () => app.cancelIdentity(),
+    onAnopaea: () => app.startAnopaea(),
+    identity: () => app.identity(),
     onVoiceToggle: () => app.toggleVoice(),
     onVoiceTest: () => app.toggleVoiceTest(),
     onSettingsClose: () => app.stopVoiceTest(),
     onSetting: (section, key, value) => settings.set(section, key, value),
     onResume: () => app.sendCommand('RESUME', 'button'),
-    onRestart: () => app.startBattle(state.currentScene === 'TutorialScene' ? 'TutorialScene' : 'BattleScene'),
+    onRestart: () => app.startBattle(app.battleKey ?? 'BattleScene'),
     onMenu: () => app.goToMenu(),
   });
   app.screens = screens;
@@ -363,7 +378,10 @@ export function createApp() {
   const narrator = new Narrator({
     lang: settings.get('voice', 'lang'),
     // Mientras Leónidas habla, el micrófono no convierte lo que oye en órdenes.
-    onSpeaking: (on) => voice.setSuspended(on),
+    onSpeaking: (on) => {
+      voice.setSuspended(on);
+      pitch.setSuspended(on);
+    },
   });
   app.narrator = narrator;
 
@@ -379,8 +397,7 @@ export function createApp() {
   });
   let lastTutorial = { text: '', hint: '' };
   bus.on(TUTORIAL_EVENT, (e) => {
-    const identity = settings.get('player', 'identity');
-    tutorialView.render({ ...e, text: personalize(e.text, identity) });
+    tutorialView.render({ ...e, text: personalize(e.text, app.identity()) });
     if (!e.awaitNext) audio.play('step');
     if (e.finished) settings.set('progress', 'tutorialDone', true);
     // Se lee el texto nuevo del paso o, si solo cambió, la pista.
@@ -396,6 +413,7 @@ export function createApp() {
     root.dataset.reduceEffects = String(a.reduceEffects);
     root.dataset.contrast = a.highContrast ? 'high' : 'normal';
     root.dataset.largeText = String(a.largeText);
+    root.dataset.plainText = String(a.plainText);
     voice.setMinConfidence(VOICE_SENSITIVITY[settings.get('voice', 'sensitivity')].minConfidence);
     hud.setKeyLabels(settings.get('keys'), keyLabel);
     tutorialView.setNarration(a.narration, narrator.supported);
@@ -408,6 +426,11 @@ export function createApp() {
       narrator.setLanguage(settings.get('voice', 'lang'));
     }
     if (section === 'audio' && settings.get('audio', 'muted')) narrator.stop();
+    if (section === 'player') app.syncPitch();
+    if (section === 'game' && key === 'lighting') {
+      // También el menú, que está en pausa.
+      for (const scene of app.game?.scene.getScenes(false) ?? []) if (scene.sys.isActive() || scene.sys.isPaused()) scene.applyLighting?.({}, 1200);
+    }
     if (section === 'access' && key === 'reduceEffects') {
       // Las escenas leen la opción al crearse; la de combate activa se actualiza aquí.
       for (const scene of app.game?.scene.getScenes(true) ?? []) scene.reduceEffects = settings.get('access', 'reduceEffects');
@@ -419,6 +442,7 @@ export function createApp() {
   bus.on(EVENTS.COMMAND_RESULT, (r) => {
     hud.commandResult(r);
     const def = getCommand(r.id);
+    if (r.source === 'button') app.buzz(r.status === 'rejected' ? [20, 30, 20] : 12);
     if (r.status === 'rejected') {
       audio.play('reject');
       hud.alert(r.message, 'warn', 1600, { icon: def?.icon });
@@ -427,6 +451,12 @@ export function createApp() {
       hud.alert(r.message, r.status === 'pending' ? 'info' : 'ok', 1200, { icon: def.icon });
     }
   });
+
+  // Golpes que se notan en la mano: flechas que alcanzan la falange y brechas.
+  bus.on(EVENTS.VOLLEY_IMPACT, ({ blocked, damage }) => {
+    if (!blocked && damage > 0) app.buzz(60);
+  });
+  bus.on(EVENTS.ENEMY_BREACH, () => app.buzz([50, 40, 50]));
 
   bus.on(EVENTS.PAUSE_CHANGED, ({ paused }) => {
     const scenes = app.game.scene;

@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
+import { createLighting } from './lighting.js';
 
 /**
  * Escenario por capas (sección 6.1): cielo con nubes que se desplazan, Eubea y
  * el golfo, la ladera del Calídromo, el suelo del paso (mapa Tiled con su capa
  * de decoración) y el mar animado en primer plano. Lo comparten el menú, la
- * batalla, el tutorial y el resultado.
+ * batalla, el tutorial y el resultado. Devuelve la iluminación de la escena
+ * (variantes de luz, ver lighting.js).
  */
-export function createBackdrop(scene, { calm = false } = {}) {
+export function createBackdrop(scene, { calm = false, light = 'dawn' } = {}) {
   scene.add.image(0, 0, 'layer-sky').setOrigin(0).setDepth(-40);
   const clouds = [];
   for (let i = 0; i < 4; i++) {
@@ -20,6 +22,7 @@ export function createBackdrop(scene, { calm = false } = {}) {
   createGround(scene);
   const sea = scene.add.sprite(0, 160, 'sea', 0).setOrigin(0).setDepth(-8);
   if (!calm) sea.play('sea-waves');
+  const lighting = createLighting(scene, light);
 
   scene.events.on(Phaser.Scenes.Events.UPDATE, (_t, delta) => {
     ambient.update(delta);
@@ -31,6 +34,7 @@ export function createBackdrop(scene, { calm = false } = {}) {
       }
     }
   });
+  return { lighting };
 }
 
 /**

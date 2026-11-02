@@ -10,7 +10,8 @@ export class ResultScene extends Phaser.Scene {
 
   create(result) {
     this.reduceEffects = this.registry.get('app').settings.get('access', 'reduceEffects');
-    createBackdrop(this, { calm: !result?.victory });
+    // Misma luz con la que terminó la batalla.
+    createBackdrop(this, { calm: !result?.victory, light: this.registry.get('app').lastLight ?? 'dawn' });
     const formation = new FormationView(this, { withIcon: false });
     if (result?.victory) formation.victory();
     else formation.defeat();

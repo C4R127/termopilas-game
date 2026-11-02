@@ -1,4 +1,4 @@
-import { EXHAUSTED, FORMATION, INTERMISSION, MORALE, PUSH, RELIEF, SHIELDS, SPEARS } from '../config/balance.js';
+import { EXHAUSTED, FLANK, FORMATION, INTERMISSION, MORALE, PUSH, RELIEF, SHIELDS, SPEARS } from '../config/balance.js';
 import { EVENTS } from '../systems/EventBus.js';
 import { MODES } from '../systems/GameState.js';
 
@@ -75,6 +75,14 @@ export class Formation {
     s.modeEndsAt = s.simTime + PUSH.durationMs;
     this.#setMode(MODES.PUSH, 'command');
     this.#lock(PUSH.durationMs);
+  }
+
+  /** Media vuelta: la falange encara el otro lado del paso. */
+  turn() {
+    const s = this.state;
+    s.facing = s.facing === 'front' ? 'rear' : 'front';
+    this.#lock(FLANK.turnMs);
+    this.bus.emit(EVENTS.FORMATION_TURNED, { facing: s.facing });
   }
 
   startRelief() {

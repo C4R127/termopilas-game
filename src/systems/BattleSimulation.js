@@ -1,4 +1,4 @@
-import { ARROWS, BREACH, INTERMISSION, LANE, MORALE, PUSH, SPEARS } from '../config/balance.js';
+import { ARROWS, BREACH, DIFFICULTY, FLANK, INTERMISSION, LANE, MORALE, PUSH, SPEARS } from '../config/balance.js';
 import { ENEMY_TYPES, WAVES } from '../data/waves.js';
 import { Formation } from '../entities/Formation.js';
 import { CommandController } from './CommandController.js';
@@ -23,19 +23,23 @@ export class BattleSimulation {
    * @param {object} [opts.volley] ritmo de flechas cuando no hay oleada activa (tutorial)
    * @param {boolean} [opts.noDefeat] la partida no se puede perder (tutorial)
    * @param {object} [opts.boss] jefe final tras la última oleada (XERXES en la campaña)
+   * @param {'easy'|'normal'|'hard'} [opts.difficulty] nivel de dificultad (DIFFICULTY en balance.js)
+   * @param {string} [opts.scenario] 'campaign', 'anopaea' (dos frentes y media vuelta) o 'tutorial'
    */
-  constructor(state, bus, { waves = WAVES, warningScale = 1, volley = null, noDefeat = false, boss = null } = {}) {
+  constructor(state, bus, { waves = WAVES, warningScale = 1, volley = null, noDefeat = false, boss = null, difficulty = 'normal', scenario = 'campaign' } = {}) {
     this.state = state;
     this.bus = bus;
     this.formation = new Formation(state, bus);
-    this.commands = new CommandController(state, this.formation, bus);
+    this.scenario = scenario;
+    this.commands = new CommandController(state, this.formation, bus, { allowTurn: scenario === 'anopaea' });
     this.waves = new WaveManager(waves, state, bus);
     this.enemies = [];
     this.volleys = []; // descargas en vuelo
     this.volleyClock = null; // { warnAt, fireAt, warned }
     this.nextId = 1;
     this.accumulator = 0;
-    this.warningScale = warningScale;
+    this.diff = DIFFICULTY[difficulty] ?? DIFFICULTY.normal;
+    this.warningScale = warningScale * this.diff.warning;
     this.fallbackVolley = volley;
     this.noDefeat = noDefeat;
     this.storms = []; // tormentas de flechas del decreto de Jerjes
@@ -86,7 +90,7 @@ export class BattleSimulation {
     const s = this.state;
     s.simTime += dt;
 
-    for (const spawn of this.waves.update(dt)) this.spawn(spawn.type, spawn.row);
+    for (const spawn of this.waves.update(dt)) this.spawn(spawn.type, spawn.row, undefined, spawn.side);
     this.#moveEnemies(dt);
     const engaged = this.#spearTargets().length > 0;
     this.#melee(dt);
@@ -103,20 +107,21 @@ export class BattleSimulation {
   // ── Enemigos ───────────────────────────────────────────────────────────
 
   /** Crea un enemigo (también lo usa el tutorial para preparar situaciones). */
-  spawn(type, row, x = LANE.spawnX) {
+  spawn(type, row, x, side = 'front') {
     const def = ENEMY_TYPES[type];
     const enemy = {
       id: this.nextId++,
       type,
       row,
-      x,
-      hp: def.hp,
-      maxHp: def.hp,
+      side, // 'front': llega por el paso (derecha); 'rear': por la senda (izquierda)
+      x: x ?? (side === 'rear' ? LANE.rearSpawnX : LANE.spawnX),
+      hp: def.hp * this.diff.enemyHp,
+      maxHp: def.hp * this.diff.enemyHp,
       vx: 0, // velocidad de retroceso (positiva hacia la derecha)
       stunUntil: 0,
       contactMs: 0,
       inContact: false,
-      volleysLeft: def.volleys ?? 0,
+      volleysLeft: side === 'rear' ? 0 : def.volleys ?? 0, // por la senda no bajan arqueros apostados
       state: 'advance', // advance | contact | aiming | stunned
       removed: false,
     };
@@ -125,46 +130,63 @@ export class BattleSimulation {
     return enemy;
   }
 
+  /**
+   * Coordenada de aproximación: distancia «hacia la falange» con el mismo sentido
+   * en los dos frentes. En el frente es la x; en la retaguardia, la x reflejada.
+   */
+  approach(e) {
+    return e.side === 'rear' ? LANE.rearMirror - e.x : e.x;
+  }
+
+  #setApproach(e, a) {
+    e.x = e.side === 'rear' ? LANE.rearMirror - a : a;
+  }
+
   #moveEnemies(dt) {
     const sec = dt / 1000;
     const t = this.state.simTime;
     const contactX = LANE.frontX + LANE.contactGap;
-    for (let row = 0; row < LANE.rowsY.length; row++) {
-      const inRow = this.enemies.filter((e) => e.row === row && !e.removed).sort((a, b) => a.x - b.x);
-      let limit = contactX; // el primero choca con la falange; los demás, con el de delante
-      for (const e of inRow) {
-        const def = ENEMY_TYPES[e.type];
-        if (e.vx > 0) {
-          // Retroceso del empuje con desaceleración constante.
-          e.x += e.vx * sec;
-          e.vx = Math.max(0, e.vx - PUSH.knockbackDecel * sec);
-        } else if (t >= e.stunUntil) {
-          const holdX = e.type === 'archer' && e.volleysLeft > 0 ? LANE.archerStopX : limit;
-          const target = Math.max(holdX, limit);
-          const speed = def.speed * (this.#frenzied(e) ? e.frenzy.speedMult : 1);
-          if (e.x > target) e.x = Math.max(target, e.x - speed * sec);
+    for (const side of ['front', 'rear']) {
+      for (let row = 0; row < LANE.rowsY.length; row++) {
+        const inRow = this.enemies.filter((e) => e.side === side && e.row === row && !e.removed).sort((a, b) => this.approach(a) - this.approach(b));
+        let limit = contactX; // el primero choca con la falange; los demás, con el de delante
+        for (const e of inRow) {
+          const def = ENEMY_TYPES[e.type];
+          let a = this.approach(e);
+          if (e.vx > 0) {
+            // Retroceso del empuje con desaceleración constante.
+            a += e.vx * sec;
+            e.vx = Math.max(0, e.vx - PUSH.knockbackDecel * sec);
+          } else if (t >= e.stunUntil) {
+            const holdX = e.type === 'archer' && e.volleysLeft > 0 ? LANE.archerStopX : limit;
+            const target = Math.max(holdX, limit);
+            const speed = def.speed * (this.#frenzied(e) ? e.frenzy.speedMult : 1);
+            if (a > target) a = Math.max(target, a - speed * sec);
+          }
+          a = Math.max(a, limit);
+          this.#setApproach(e, a);
+          e.inContact = a <= contactX + 0.5 && e.vx === 0;
+          if (t < e.stunUntil) e.state = 'stunned';
+          else if (e.inContact) e.state = 'contact';
+          else if (e.type === 'archer' && e.volleysLeft > 0 && a <= LANE.archerStopX + 0.5) e.state = 'aiming';
+          else e.state = 'advance';
+          // Los arqueros apostados se apartan: la infantería pasa por delante de ellos.
+          if (!(e.type === 'archer' && e.volleysLeft > 0)) limit = a + LANE.enemyGap;
         }
-        e.x = Math.max(e.x, limit);
-        e.inContact = e.x <= contactX + 0.5 && e.vx === 0;
-        if (t < e.stunUntil) e.state = 'stunned';
-        else if (e.inContact) e.state = 'contact';
-        else if (e.type === 'archer' && e.volleysLeft > 0 && e.x <= LANE.archerStopX + 0.5) e.state = 'aiming';
-        else e.state = 'advance';
-        // Los arqueros apostados se apartan: la infantería pasa por delante de ellos.
-        if (!(e.type === 'archer' && e.volleysLeft > 0)) limit = e.x + LANE.enemyGap;
       }
     }
   }
 
-  /** Enemigo más adelantado de cada fila dentro del alcance de las lanzas. */
+  /** Enemigo más adelantado de cada fila, en el lado al que mira la falange, al alcance de las lanzas. */
   #spearTargets() {
     const reach = LANE.frontX + SPEARS.range;
+    const facing = this.state.facing;
     const targets = [];
     for (let row = 0; row < LANE.rowsY.length; row++) {
       let best = null;
       for (const e of this.enemies) {
-        if (e.removed || e.row !== row || e.x > reach) continue;
-        if (!best || e.x < best.x) best = e;
+        if (e.removed || e.row !== row || e.side !== facing || this.approach(e) > reach) continue;
+        if (!best || this.approach(e) < this.approach(best)) best = e;
       }
       if (best) targets.push(best);
     }
@@ -186,7 +208,9 @@ export class BattleSimulation {
     for (const e of this.enemies) {
       if (e.removed || !e.inContact || e.state === 'stunned') continue;
       const rage = this.#frenzied(e) ? e.frenzy.contactMult : 1;
-      f.damageCohesion(ENEMY_TYPES[e.type].contactDps * rage * f.meleeFactor * sec);
+      // Quien ataca por el lado al que no mira la falange encuentra la formación desprotegida.
+      const flank = e.side !== this.state.facing ? FLANK.contactMult : 1;
+      f.damageCohesion(ENEMY_TYPES[e.type].contactDps * this.diff.contact * rage * flank * f.meleeFactor * sec);
       e.contactMs += dt;
       if (e.contactMs >= BREACH.contactMs) this.#breach(e);
     }
@@ -244,7 +268,7 @@ export class BattleSimulation {
     const s = this.state;
     s.stats.kills++;
     s.stats.killsByType[enemy.type] = (s.stats.killsByType[enemy.type] ?? 0) + 1;
-    s.stats.score += ENEMY_TYPES[enemy.type].score + (cause === 'edge' ? 5 : 0);
+    s.stats.score += Math.round((ENEMY_TYPES[enemy.type].score + (cause === 'edge' ? 5 : 0)) * this.diff.score);
     if (cause === 'edge') s.stats.edgeKills++;
     this.formation.changeMorale(cause === 'edge' ? MORALE.edgeKillBonus : MORALE.killBonus, 'kill');
     this.bus.emit(EVENTS.ENEMY_DIED, { enemy, cause });
@@ -263,9 +287,11 @@ export class BattleSimulation {
     const t = this.state.simTime;
     const hits = [];
     for (const e of this.enemies) {
-      if (e.removed || e.x > reach) continue;
+      // El empuje solo alcanza al lado al que mira la falange.
+      if (e.removed || e.side !== this.state.facing || this.approach(e) > reach) continue;
       const def = ENEMY_TYPES[e.type];
-      if (e.row === LANE.edgeRow && !def.edgeImmune) {
+      // Solo el frente linda con el acantilado peligroso (zona x 96–144).
+      if (e.side === 'front' && e.row === LANE.edgeRow && !def.edgeImmune) {
         // Junto al acantilado, el retroceso los hace caer al mar.
         hits.push({ enemy: e, fell: true });
         this.#kill(e, 'edge');
@@ -319,7 +345,7 @@ export class BattleSimulation {
       if (storm.left <= 0 || t < storm.nextFire) continue;
       storm.left--;
       storm.nextFire += storm.gapMs;
-      this.volleys.push({ impactAt: t + ARROWS.flightMs, damage: storm.damage, storm, remaining: storm.left, done: false });
+      this.volleys.push({ impactAt: t + ARROWS.flightMs, damage: storm.damage * this.diff.arrows, storm, remaining: storm.left, done: false });
       this.bus.emit(EVENTS.VOLLEY_FIRED, { archers: [], storm: true, flightMs: ARROWS.flightMs, damage: storm.damage });
     }
     this.storms = this.storms.filter((st) => st.left > 0);
@@ -347,7 +373,7 @@ export class BattleSimulation {
 
   #fire(archers) {
     const t = this.state.simTime;
-    const damage = Math.min(ARROWS.maxDamage, ARROWS.damagePerArcher * archers.length);
+    const damage = Math.round(Math.min(ARROWS.maxDamage, ARROWS.damagePerArcher * archers.length) * this.diff.arrows);
     const volley = { impactAt: t + ARROWS.flightMs, damage, archers: archers.length, done: false };
     for (const a of archers) a.volleysLeft--; // sin flechas, cargan cuerpo a cuerpo
     this.volleys.push(volley);
@@ -392,14 +418,14 @@ export class BattleSimulation {
         cohesion: Math.round(s.cohesion),
         breaches: s.breaches,
       });
-      s.stats.score += 100 + Math.round(s.cohesion);
+      s.stats.score += Math.round((100 + s.cohesion) * this.diff.score);
       this.formation.changeMorale(MORALE.waveBonus, 'wave');
-      this.formation.restoreCohesion(INTERMISSION.cohesionBonus);
+      this.formation.restoreCohesion(INTERMISSION.cohesionBonus * this.diff.cohesionBonus);
       const finished = this.waves.completeWave();
       this.bus.emit(EVENTS.WAVE_COMPLETED, { index, total: this.waves.total, last: finished && !this.boss });
       if (finished) {
         if (this.boss) this.boss.start(); // tras la última oleada llega el enfrentamiento final
-        else this.#gameOver(true, 'campaign');
+        else this.#gameOver(true, this.scenario === 'anopaea' ? 'anopaea' : 'campaign');
       }
     }
     return undefined;
@@ -420,6 +446,7 @@ export class BattleSimulation {
       bossDefeated: victory && bossReached,
       bossResolve: s.boss?.resolve ?? null,
       bossTimeMs: s.boss ? s.simTime - s.boss.startedAt : null,
+      scenario: this.scenario,
       cohesion: Math.round(s.cohesion),
     };
     this.bus.emit(EVENTS.GAME_OVER, { ...s.result, stats: s.stats });

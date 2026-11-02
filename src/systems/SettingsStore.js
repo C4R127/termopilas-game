@@ -1,15 +1,16 @@
 import { VOICE } from '../config/balance.js';
-import { IDENTITIES } from './PlayerProfile.js';
+import { ADDRESS_OPTIONS } from './PlayerProfile.js';
 
 const STORAGE_KEY = 'termopilas.settings.v1';
 
 // Acciones que se pueden asignar a una tecla (sección 7.5: remapear las teclas).
-export const KEY_ACTIONS = ['SHIELDS', 'SPEARS', 'PUSH', 'RELIEF', 'PAUSE', 'VOICE', 'MUTE'];
+export const KEY_ACTIONS = ['SHIELDS', 'SPEARS', 'PUSH', 'RELIEF', 'TURN', 'PAUSE', 'VOICE', 'MUTE'];
 export const KEY_ACTION_LABELS = {
   SHIELDS: 'Escudos',
   SPEARS: 'Lanzas',
   PUSH: 'Empujen',
   RELIEF: 'Relevo',
+  TURN: 'Media vuelta (Anopea)',
   PAUSE: 'Pausa / Continuar',
   VOICE: 'Micrófono',
   MUTE: 'Silenciar sonido',
@@ -30,14 +31,16 @@ export const DEFAULT_SETTINGS = Object.freeze({
     reduceEffects: false, // menos partículas, sin sacudidas ni destellos
     highContrast: false,
     largeText: false,
+    plainText: false, // texto corrido con la fuente del sistema en lugar de la pixel
     longWarnings: false, // avisos de flechas un 50 % más largos
     narration: false, // leer en voz alta las indicaciones del tutorial y los mensajes de Leónidas
   },
-  keys: { SHIELDS: 'Digit1', SPEARS: 'Digit2', PUSH: 'Digit3', RELIEF: 'Digit4', PAUSE: 'KeyP', VOICE: 'KeyV', MUTE: 'KeyM' },
+  keys: { SHIELDS: 'Digit1', SPEARS: 'Digit2', PUSH: 'Digit3', RELIEF: 'Digit4', TURN: 'Digit5', PAUSE: 'KeyP', VOICE: 'KeyV', MUTE: 'KeyM' },
   voice: { lang: VOICE.lang, sensitivity: 'normal' },
   progress: { tutorialDone: false },
+  game: { difficulty: 'normal', lighting: 'auto' },
   // Cómo quiere el jugador que Leónidas se dirija a él; lo dice el propio jugador.
-  player: { identity: 'unspecified', asked: false },
+  player: { address: 'auto' }, // trato de Leónidas: automático por el tono de voz o fijo
 });
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -56,7 +59,9 @@ function sanitize(raw) {
   }
   for (const k of ['master', 'music', 'sfx']) out.audio[k] = clamp01(out.audio[k]);
   if (!VOICE_SENSITIVITY[out.voice.sensitivity]) out.voice.sensitivity = 'normal';
-  if (!IDENTITIES[out.player.identity]) out.player.identity = 'unspecified';
+  if (!ADDRESS_OPTIONS[out.player.address]) out.player.address = 'auto';
+  if (!['easy', 'normal', 'hard'].includes(out.game.difficulty)) out.game.difficulty = 'normal';
+  if (!['auto', 'dawn', 'day', 'dusk', 'night'].includes(out.game.lighting)) out.game.lighting = 'auto';
   // Si quedaron teclas repetidas o reservadas, se vuelve a la distribución por defecto.
   const codes = Object.values(out.keys);
   if (new Set(codes).size !== codes.length || codes.some((c) => RESERVED_KEYS.includes(c))) out.keys = clone(DEFAULT_SETTINGS.keys);

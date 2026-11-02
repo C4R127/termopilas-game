@@ -26,7 +26,8 @@ export function matchCommand(transcript) {
   const exact = ALIAS_TABLE.find((a) => a.alias === text);
   if (exact) return { id: exact.id };
   const words = new Set(text.split(' '));
-  const ids = new Set(ALIAS_TABLE.filter((a) => words.has(a.alias)).map((a) => a.id));
+  const padded = ` ${text} `;
+  const ids = new Set(ALIAS_TABLE.filter((a) => (a.alias.includes(' ') ? padded.includes(` ${a.alias} `) : words.has(a.alias))).map((a) => a.id));
   if (ids.size === 1) return { id: [...ids][0] };
   return { id: null, reason: ids.size > 1 ? 'ambiguous' : 'unknown' };
 }

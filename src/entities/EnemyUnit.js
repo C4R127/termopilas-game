@@ -19,7 +19,11 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
     this.flashUntil = 0;
     this.dying = false;
     this.releasing = false;
-    this.setOrigin(0.5, 1).setFlipX(true); // los sprites miran a la derecha: el enemigo avanza hacia la izquierda
+    // Los sprites miran a la derecha: el del frente avanza hacia la izquierda; el de la senda de Anopea, hacia la derecha.
+    this.rear = record.side === 'rear';
+    this.dir = this.rear ? -1 : 1; // hacia dónde lo empujan los golpes de la falange
+    this.kick = 0; // retroceso momentáneo (px) al encajar una lanzada
+    this.setOrigin(0.5, 1).setFlipX(!this.rear);
     this.setDepth(this.y * 10 + 5);
     scene.add.existing(this);
     this.play(ANIMS[record.type].advance);
@@ -35,7 +39,7 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
 
   sync(rec, now) {
     if (this.dying) return;
-    this.x = Math.round(rec.x);
+    this.x = Math.round(rec.x + this.kick);
     if (rec.state === 'stunned') {
       this.anims.stop();
       this.setFrame(6);
@@ -68,6 +72,7 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
     if (rec.hp < this.lastHp - 0.5 && now > this.flashUntil && !this.scene.reduceEffects) {
       this.setTintFill(0xffffff);
       this.flashUntil = now + 160;
+      this.kick = this.dir * 2; // encaja la lanzada y recula un instante
       this.scene.time.delayedCall(60, () => {
         if (this.dying) return;
         if (this.staggered) this.setTint(0xffe08a);
@@ -99,18 +104,26 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
       this.setDepth(1700);
       return;
     }
+    // Cae de espaldas: el golpe lo despide unos píxeles con un pequeño salto y levanta polvo.
     this.setFrame(7);
-    this.scene.tweens.add({ targets: this, alpha: 0, delay: 500, duration: 500, onComplete: () => this.destroy() });
+    this.kick = 0;
+    const reduce = this.scene.reduceEffects;
+    if (!reduce) {
+      this.scene.tweens.add({ targets: this, x: this.x + this.dir * 6, duration: 260, ease: 'Quad.easeOut' });
+      this.scene.tweens.add({ targets: this, y: this.y - 3, duration: 120, yoyo: true, ease: 'Sine.easeOut' });
+    }
+    this.scene.burst?.('dust', 4, this.x + this.dir * 4, this.y);
+    this.scene.tweens.add({ targets: this, alpha: 0, delay: 600, duration: 500, onComplete: () => this.destroy() });
   }
 
-  /** Jerjes ordena la retirada: da media vuelta y sale por la derecha. */
+  /** Jerjes ordena la retirada: da media vuelta y sale por donde vino. */
   retreat() {
     this.dying = true;
     this.clearTint();
-    this.setFlipX(false);
+    this.setFlipX(this.rear);
     this.anims.timeScale = 1;
     this.anims.play(ANIMS[this.record.type].advance, true);
-    this.scene.tweens.add({ targets: this, x: 340, duration: 2200 + Math.random() * 600, ease: 'Sine.easeIn', onComplete: () => this.destroy() });
+    this.scene.tweens.add({ targets: this, x: this.rear ? -40 : 340, duration: 2200 + Math.random() * 600, ease: 'Sine.easeIn', onComplete: () => this.destroy() });
   }
 
   /** Atraviesa la línea y se pierde en la retaguardia. */
@@ -119,11 +132,15 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
     this.setTint(0xff8a70);
     this.anims.play(ANIMS[this.record.type].advance, true);
     this.setDepth(this.y * 10 + 9);
-    this.scene.tweens.add({ targets: this, x: 8, alpha: 0, duration: 900, ease: 'Sine.easeIn', onComplete: () => this.destroy() });
+    this.scene.tweens.add({ targets: this, x: this.rear ? 150 : 8, alpha: 0, duration: 900, ease: 'Sine.easeIn', onComplete: () => this.destroy() });
   }
 
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
+    if (this.kick) {
+      this.kick *= Math.pow(0.82, delta / 16.7);
+      if (Math.abs(this.kick) < 0.3) this.kick = 0;
+    }
     if (this.shadow) {
       this.shadow.x = this.x;
       this.shadow.alpha = this.alpha;

@@ -17,6 +17,17 @@ export const LANE = {
   // Filas del carril (pies de los sprites). La fila 2 linda con el acantilado.
   rowsY: [124, 134, 144],
   edgeRow: 2,
+  // Retaguardia (escenario de Anopea): los enemigos llegan por la izquierda. Su posición
+  // se refleja respecto a rearMirror para reutilizar las reglas del frente:
+  // x_reflejada = rearMirror − x  (contacto trasero en x = 21).
+  rearMirror: 122,
+  rearSpawnX: -64, // fuera de pantalla: la infantería tarda ~6 s en llegar (el frente, ~16 s)
+};
+
+/** Media vuelta y flanco desprotegido (escenario de Anopea). */
+export const FLANK = {
+  turnMs: 600, // la formación tarda en girar: durante ese tiempo no acepta otra orden
+  contactMult: 1.3, // el lado al que no se mira golpea más fuerte
 };
 
 export const FORMATION = {
@@ -98,4 +109,14 @@ export const VOICE = {
   fallbackLang: 'es-ES',
   minConfidence: 0.45, // solo se aplica si el navegador informa confianza
   repeatCooldownMs: 1200, // la misma orden por voz no se repite antes de este tiempo
+};
+
+/**
+ * Niveles de dificultad: multiplican los valores de la campaña. «Normal» es el
+ * balance de referencia (el que validan los bots de prueba).
+ */
+export const DIFFICULTY = {
+  easy: { id: 'easy', label: 'Fácil', enemyHp: 0.8, contact: 0.75, arrows: 0.75, warning: 1.35, bossResolve: 0.8, cohesionBonus: 1.5, score: 0.75 },
+  normal: { id: 'normal', label: 'Normal', enemyHp: 1, contact: 1, arrows: 1, warning: 1, bossResolve: 1, cohesionBonus: 1, score: 1 },
+  hard: { id: 'hard', label: 'Difícil', enemyHp: 1.05, contact: 1.05, arrows: 1.15, warning: 0.85, bossResolve: 1.1, cohesionBonus: 1, score: 1.5 },
 };
