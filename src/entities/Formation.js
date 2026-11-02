@@ -77,12 +77,12 @@ export class Formation {
     this.#lock(PUSH.durationMs);
   }
 
-  /** Media vuelta: la falange encara el otro lado del paso. */
-  turn() {
+  /** Media vuelta: la falange encara el otro lado del paso (`auto`: la decidió el juego, en Fácil). */
+  turn({ auto = false } = {}) {
     const s = this.state;
     s.facing = s.facing === 'front' ? 'rear' : 'front';
     this.#lock(FLANK.turnMs);
-    this.bus.emit(EVENTS.FORMATION_TURNED, { facing: s.facing });
+    this.bus.emit(EVENTS.FORMATION_TURNED, { facing: s.facing, auto });
   }
 
   startRelief() {

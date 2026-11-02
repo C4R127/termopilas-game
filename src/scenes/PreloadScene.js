@@ -30,6 +30,9 @@ export class PreloadScene extends Phaser.Scene {
     this.load.spritesheet('fleet', 'images/effects/fleet.png', { frameWidth: 14, frameHeight: 8 });
     this.load.image('shadow', 'images/effects/shadow.png');
     this.load.spritesheet('sea', 'images/backgrounds/sea.png', { frameWidth: 320, frameHeight: 20 });
+    // Franja oeste del escenario (senda de Anopea).
+    for (const layer of ['sky', 'far', 'mountain', 'ground']) this.load.image(`west-${layer}`, `images/backgrounds/west-${layer}.png`);
+    this.load.spritesheet('west-sea', 'images/backgrounds/west-sea.png', { frameWidth: 112, frameHeight: 20 });
     this.load.spritesheet('clouds', 'images/backgrounds/clouds.png', { frameWidth: 64, frameHeight: 12 });
     this.load.spritesheet('hoplite', 'images/characters/hoplite.png', FRAME);
     this.load.spritesheet('infantry', 'images/characters/persian-infantry.png', FRAME);
@@ -66,6 +69,7 @@ export class PreloadScene extends Phaser.Scene {
       this.anims.create({ key, frames: this.anims.generateFrameNumbers(sheet, { frames }), frameRate, repeat });
     };
     anim('sea-waves', 'sea', [0, 1, 2, 3], 3);
+    anim('west-sea-waves', 'west-sea', [0, 1, 2, 3], 3);
     anim('gull-flap', 'gulls', [0, 1], 4);
     anim('hop-idle', 'hoplite', [0, 1], 2);
     anim('hop-shields', 'hoplite', [2, 3], 2);

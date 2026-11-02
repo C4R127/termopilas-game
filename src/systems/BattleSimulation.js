@@ -3,6 +3,7 @@ import { ENEMY_TYPES, WAVES } from '../data/waves.js';
 import { Formation } from '../entities/Formation.js';
 import { CommandController } from './CommandController.js';
 import { EVENTS } from './EventBus.js';
+import { MODES } from './GameState.js';
 import { BossDirector } from './BossDirector.js';
 import { WaveManager } from './WaveManager.js';
 
@@ -92,6 +93,7 @@ export class BattleSimulation {
 
     for (const spawn of this.waves.update(dt)) this.spawn(spawn.type, spawn.row, undefined, spawn.side);
     this.#moveEnemies(dt);
+    this.#autoTurn();
     const engaged = this.#spearTargets().length > 0;
     this.#melee(dt);
     this.#updateVolleys(dt);
@@ -175,6 +177,23 @@ export class BattleSimulation {
         }
       }
     }
+  }
+
+  /**
+   * Fácil (senda de Anopea): la falange encara sola el lado que la amenaza si
+   * por el lado al que mira no hay nadie cerca, o si solo la golpean por la espalda.
+   */
+  #autoTurn() {
+    const s = this.state;
+    if (!this.diff.autoTurn || !this.commands.allowTurn || s.phase !== 'playing' || s.isPaused) return;
+    if (this.formation.busy || s.pending || s.formationMode === MODES.RELIEF || s.formationMode === MODES.PUSH) return;
+    const reach = LANE.frontX + PUSH.range + 10;
+    const near = (side) => this.enemies.filter((e) => !e.removed && e.side === side && this.approach(e) <= reach);
+    const ahead = near(s.facing);
+    const behind = near(s.facing === 'front' ? 'rear' : 'front');
+    if (!behind.length) return;
+    const onlyBehindInContact = behind.some((e) => e.inContact) && !ahead.some((e) => e.inContact);
+    if (!ahead.length || onlyBehindInContact) this.formation.turn({ auto: true });
   }
 
   /** Enemigo más adelantado de cada fila, en el lado al que mira la falange, al alcance de las lanzas. */

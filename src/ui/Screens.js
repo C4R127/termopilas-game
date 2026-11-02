@@ -5,7 +5,7 @@ import { LIGHT_SETTING } from '../config/lighting.js';
 import { XERXES } from '../data/boss.js';
 import { ENEMY_TYPES, WAVES } from '../data/waves.js';
 import { LEONIDAS } from '../data/leonidas.js';
-import { ADDRESS_OPTIONS, personalize } from '../systems/PlayerProfile.js';
+import { ADDRESS_OPTIONS, IDENTITIES, personalize } from '../systems/PlayerProfile.js';
 import { KEY_ACTION_LABELS, KEY_ACTIONS, keyLabel, VOICE_SENSITIVITY } from '../systems/SettingsStore.js';
 
 const LOGO = `${import.meta.env.BASE_URL}assets/images/ui/logo.png`;
@@ -93,6 +93,7 @@ export class Screens {
       case 'start': return h.onStart();
       case 'difficulty': return this.#setDifficulty(target.dataset.id);
       case 'tutorial': return h.onTutorial();
+      case 'voiceid': return h.onVoiceId?.(target.dataset.do, target.dataset.id);
       case 'anopaea': return h.onAnopaea();
       case 'controls': return this.controls();
       case 'settings': return this.settingsScreen();
@@ -176,7 +177,11 @@ export class Screens {
   /** Selector de dificultad del menú: tres botones con estado pulsado. */
   #difficultyPicker() {
     const current = this.settings.get('game', 'difficulty');
-    const help = { easy: 'Más tiempo para reaccionar y enemigos más débiles', normal: 'El equilibrio de referencia', hard: 'Avisos más cortos, enemigos más duros y más puntos' };
+    const help = {
+      easy: 'Más tiempo para reaccionar y enemigos más débiles. En la senda de Anopea atacan por un solo lado cada vez y la falange gira sola',
+      normal: 'El equilibrio de referencia. En la senda de Anopea, tú ordenas la media vuelta',
+      hard: 'Avisos más cortos, enemigos más duros y más puntos. En la senda de Anopea, frente y retaguardia atacan a la vez más a menudo',
+    };
     return `<div class="difficulty" role="group" aria-label="Dificultad">
       <span class="difficulty-label">Dificultad</span>
       ${Object.values(DIFFICULTY).map((d) => `<button class="btn btn-small" type="button" data-action="difficulty" data-id="${d.id}" aria-pressed="${d.id === current}" title="${esc(help[d.id])}">${esc(d.label)}</button>`).join('')}
@@ -274,6 +279,56 @@ export class Screens {
         </div>
         <div class="btn-row"><button class="btn btn-primary" type="button" data-action="back" data-autofocus>Volver</button></div>
       </div>`);
+  }
+
+  /**
+   * Antes de la batalla: Leónidas identifica a quien juega por el tono de su voz.
+   * phase: 'ask' (instrucciones), 'listening', 'done', 'retry' (no se oyó bastante) o 'error' (sin micrófono).
+   */
+  voiceId({ phase = 'ask', identity = null, heard = false } = {}) {
+    const portrait = `${import.meta.env.BASE_URL}assets/images/ui/leonidas.png`;
+    const ally = identity ? IDENTITIES[identity].ally : null;
+    const btn = (action, label, { primary = false, icon = null, id = null, auto = false } = {}) =>
+      `<button class="btn ${primary ? 'btn-primary' : ''}" type="button" data-action="voiceid" data-do="${action}" ${id ? `data-id="${id}"` : ''} ${auto ? 'data-autofocus' : ''}>${icon != null ? `<i class="icon" data-icon="${icon}" aria-hidden="true"></i>` : ''}${esc(label)}</button>`;
+    const picks = Object.entries(IDENTITIES).map(([id, d]) => btn('pick', d.label, { id })).join('');
+    const body = {
+      ask: `<p class="lead">${esc(personalize(LEONIDAS.voiceIdAsk, identity ?? 'unspecified'))}</p>
+        <div class="voiceid-actions">${btn('listen', 'Identificar mi voz', { primary: true, icon: 5, auto: true })}
+          ${ally ? btn('continue', `Seguir como «${ally}»`) : ''}</div>`,
+      listening: `<p class="lead">Escuchando… di en voz alta: <b>«${esc(LEONIDAS.voiceIdPhrase)}»</b></p>
+        <div class="voiceid-meter" role="progressbar" aria-label="Voz oída" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span data-voiceid-bar></span></div>
+        <p class="voice-note" role="status" aria-live="polite" data-voiceid-note>Habla con tu tono normal, como si dieras una orden.</p>`,
+      done: `<p class="lead voiceid-result">${heard ? 'Te reconozco por la voz' : 'De acuerdo'}: Leónidas te tratará de <b>«${esc(ally ?? '')}»</b>.</p>
+        <div class="voiceid-actions">${btn('continue', 'Comenzar', { primary: true, auto: true })}${btn('listen', 'Repetir', { icon: 5 })}</div>
+        <p class="voiceid-fix">¿No es correcto? Elige cómo quieres que te trate:</p>
+        <div class="btn-grid voiceid-picks">${picks}</div>`,
+      retry: `<p class="lead">No te he oído lo suficiente. Acércate al micrófono y di la frase completa, en voz alta.</p>
+        <div class="voiceid-actions">${btn('listen', 'Intentar de nuevo', { primary: true, icon: 5, auto: true })}</div>
+        <p class="voiceid-fix">O elige cómo quieres que te trate:</p>
+        <div class="btn-grid voiceid-picks">${picks}</div>`,
+      error: `<p class="lead">No se pudo usar el micrófono (permiso denegado o no hay ninguno). Elige cómo quieres que te trate o salta este paso.</p>
+        <div class="btn-grid voiceid-picks">${picks}</div>`,
+    }[phase];
+    this.#show('voiceid', `
+      <div class="panel voiceid" data-phase="${phase}">
+        <div class="voiceid-head">
+          <img class="tutorial-portrait" src="${portrait}" alt="Leónidas I" width="64" height="64" />
+          <div><h2>Antes de la batalla</h2>${body}</div>
+        </div>
+        <p class="fineprint">El tono de tu voz se analiza en el momento, en este navegador: no se graba, no se guarda ni se envía audio.
+          Solo sirve para que Leónidas te llame «aliada» o «aliado» (o «estratega» si el tono no basta). Puedes fijarlo en Ajustes.</p>
+        <div class="btn-row">${phase === 'listening' ? '' : `${btn('skip', 'Saltar')}${btn('cancel', 'Volver al menú')}`}</div>
+      </div>`);
+  }
+
+  /** Barra «te oigo» mientras escucha el panel de identificación (0–1). */
+  voiceIdProgress(fraction) {
+    const bar = this.el.querySelector('[data-voiceid-bar]');
+    if (!bar) return;
+    const pct = Math.round(fraction * 100);
+    bar.style.width = `${pct}%`;
+    bar.parentElement.setAttribute('aria-valuenow', String(pct));
+    if (pct >= 100) this.el.querySelector('[data-voiceid-note]').textContent = 'Te oigo bien. Termina la frase…';
   }
 
   /** Resultado de la prueba de voz dentro de Ajustes. */

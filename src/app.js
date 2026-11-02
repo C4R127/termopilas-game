@@ -4,7 +4,7 @@ import { AudioManager } from './systems/AudioManager.js';
 import { EventBus, EVENTS } from './systems/EventBus.js';
 import { GameState } from './systems/GameState.js';
 import { Narrator } from './systems/Narrator.js';
-import { PitchProfile, PitchSensor } from './systems/PitchSensor.js';
+import { identityFromSamples, PITCH, PitchProfile, PitchSensor } from './systems/PitchSensor.js';
 import { IDENTITIES, personalize, resolveIdentity } from './systems/PlayerProfile.js';
 import { keyLabel, SettingsStore, VOICE_SENSITIVITY } from './systems/SettingsStore.js';
 import { TUTORIAL_EVENT } from './systems/TutorialDirector.js';
@@ -111,11 +111,86 @@ export function createApp() {
       this.beginBattle('AnopaeaScene');
     },
 
-    /** Desde un botón del menú: pantalla completa en táctil y a la batalla. */
+    /**
+     * Desde un botón del menú: pantalla completa en táctil y a la batalla. Antes
+     * de la campaña y de la senda de Anopea, si el trato es automático, Leónidas
+     * pide oír la voz de quien juega (panel de identificación).
+     */
     beginBattle(key) {
       audio.unlock();
       this.touchFullscreen();
+      if (key !== 'TutorialScene' && settings.get('player', 'address') === 'auto' && PitchSensor.supported) {
+        this.pendingStart = key;
+        screens.voiceId({ phase: 'ask', identity: this.detectedIdentity });
+        this.narrate(LEONIDAS.voiceIdAsk);
+        return;
+      }
       this.startBattle(key);
+    },
+
+    // ── Panel de identificación por la voz ────────────────────────────────
+    /** Escucha unos segundos y decide el trato por el tono mediano. */
+    async voiceIdListen() {
+      if (this.voiceIdListening) return;
+      narrator.stop();
+      this.voiceIdListening = true;
+      const samples = [];
+      const sensor = new PitchSensor({ onFrame: (hz) => {
+        samples.push(hz);
+        screens.voiceIdProgress(Math.min(1, samples.length / PITCH.panelMinFrames));
+      } });
+      screens.voiceId({ phase: 'listening' });
+      const ok = await sensor.start();
+      if (!ok) {
+        this.voiceIdListening = false;
+        screens.voiceId({ phase: 'error' });
+        return;
+      }
+      // Termina cuando ha oído la frase (voz de sobra tras el tiempo mínimo) o al agotar el máximo.
+      const started = performance.now();
+      while (screens.current === 'voiceid') {
+        const elapsed = performance.now() - started;
+        if ((elapsed >= PITCH.panelMinMs && samples.length >= PITCH.panelMinFrames * 2) || elapsed >= PITCH.panelMaxMs) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      sensor.stop(); // se libera el micrófono: no se guarda nada
+      this.voiceIdListening = false;
+      if (screens.current !== 'voiceid') return; // se canceló mientras escuchaba
+      const result = identityFromSamples(samples);
+      if (!result) {
+        screens.voiceId({ phase: 'retry' });
+        return;
+      }
+      this.voiceIdChoose(result.identity, { heard: true });
+    },
+
+    /** Trato decidido (por la voz o corregido a mano) para esta sesión. */
+    voiceIdChoose(id, { heard = false } = {}) {
+      if (!IDENTITIES[id]) return;
+      this.detectedIdentity = id;
+      screens.voiceId({ phase: 'done', identity: id, heard });
+      this.narrate(LEONIDAS.voiceIdDone);
+    },
+
+    voiceIdContinue({ skip = false } = {}) {
+      // Con un trato ya decidido, la batalla no vuelve a analizar el tono.
+      this.presetIdentity = !skip && !!this.detectedIdentity;
+      const key = this.pendingStart ?? 'BattleScene';
+      this.pendingStart = null;
+      narrator.stop();
+      this.startBattle(key);
+    },
+
+    /** Sin identificar: Leónidas usa «estratega» y lo intentará con las órdenes de voz. */
+    voiceIdSkip() {
+      this.detectedIdentity = null;
+      this.voiceIdContinue({ skip: true });
+    },
+
+    voiceIdCancel() {
+      this.pendingStart = null;
+      narrator.stop();
+      this.renderMenu();
     },
 
     // ── Trato de Leónidas según el tono de voz ────────────────────────────
@@ -162,8 +237,10 @@ export function createApp() {
       audio.setIntensity(0);
       if (state.voiceEnabled) voice.start();
       else hud.voiceStatus(voice.status, voice.message, false);
-      // Cada batalla vuelve a escuchar el tono: puede jugar otra persona.
-      this.voiceDecided = false;
+      // Cada batalla vuelve a escuchar el tono (puede jugar otra persona), salvo
+      // si se acaba de identificar en el panel.
+      this.voiceDecided = !!this.presetIdentity;
+      this.presetIdentity = false;
       pitchProfile.reset();
       this.syncPitch();
     },
@@ -365,6 +442,13 @@ export function createApp() {
     onTutorial: () => app.startTutorial(),
     onAnopaea: () => app.startAnopaea(),
     identity: () => app.identity(),
+    onVoiceId: (action, id) => {
+      if (action === 'listen') app.voiceIdListen();
+      else if (action === 'pick') app.voiceIdChoose(id);
+      else if (action === 'continue') app.voiceIdContinue();
+      else if (action === 'skip') app.voiceIdSkip();
+      else if (action === 'cancel') app.voiceIdCancel();
+    },
     onVoiceToggle: () => app.toggleVoice(),
     onVoiceTest: () => app.toggleVoiceTest(),
     onSettingsClose: () => app.stopVoiceTest(),

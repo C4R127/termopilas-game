@@ -416,6 +416,17 @@ html, body { overscroll-behavior: none; }
 
 /* ── Presentación ───────────────────────────────────────────────────────── */
 .result-address { margin: 0 0 4px; font-size: 18px; color: var(--cream); }
+/* Panel de identificación por la voz (antes de la batalla). */
+.voiceid-head { display: flex; gap: 14px; align-items: flex-start; }
+.voiceid-head .lead { margin: 6px 0 10px; }
+.voiceid-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.voiceid-actions .btn { flex: 1 1 180px; }
+.voiceid-meter { height: 12px; border: 1px solid var(--line); border-radius: 3px; background: #120d0a; overflow: hidden; margin: 4px 0; }
+.voiceid-meter > span { display: block; height: 100%; width: 0; background: var(--ok); transition: width 0.1s linear; }
+.voiceid-result { font-size: 18px; color: var(--cream) !important; }
+.voiceid-result b { color: var(--bronze-light); }
+.voiceid-fix { margin: 6px 0 4px; font-size: 14px; color: var(--muted); }
+.voiceid-picks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* ── Panel del tutorial ─────────────────────────────────────────────────── */
 .tutorial {
@@ -587,6 +598,12 @@ html, body { overscroll-behavior: none; }
   .screen[data-transparent='true'] .panel { width: min(680px, 100%); padding: 8px 16px; }
   .screen[data-transparent='true'] .panel h1 { font-size: 24px; }
   .logo-wrap { width: 176px; }
+  .voiceid-head .tutorial-portrait { width: 36px; height: 36px; }
+  .voiceid .lead { margin: 2px 0 6px; }
+  .voiceid-result { font-size: 15px; }
+  .voiceid-fix { margin: 2px 0; font-size: 12px; }
+  .voiceid .btn { padding: 5px 10px; }
+  .voiceid .fineprint { font-size: 10px !important; margin-top: 4px; padding-top: 4px; }
   .screen[data-transparent='true'] .lead { display: none; }
   .screen[data-transparent='true'] .menu-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 8px 0 4px; gap: 6px; }
   .menu-actions > .btn-primary, .menu-actions > .difficulty, .menu-actions > .btn-grid { grid-column: 1 / -1; }

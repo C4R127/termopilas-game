@@ -21,13 +21,24 @@ export const LANE = {
   // se refleja respecto a rearMirror para reutilizar las reglas del frente:
   // x_reflejada = rearMirror − x  (contacto trasero en x = 21).
   rearMirror: 122,
-  rearSpawnX: -64, // fuera de pantalla: la infantería tarda ~6 s en llegar (el frente, ~16 s)
+  rearSpawnX: -124, // fuera de pantalla aun con la cámara mirando a la senda (~10 s de marcha hasta la línea)
 };
+
+/**
+ * Vista del escenario de Anopea: el mundo se prolonga `west` px a la izquierda
+ * y la cámara se desliza `shift` px hacia la senda cuando la falange la encara.
+ */
+export const VIEW = { west: 112, shift: 100, panMs: 700 };
+
+/** Paralaje: el cielo y la lejanía se desplazan menos que el paso (solo se nota cuando la cámara se mueve). */
+export const PARALLAX = { sky: 0.6, far: 0.8 };
 
 /** Media vuelta y flanco desprotegido (escenario de Anopea). */
 export const FLANK = {
   turnMs: 600, // la formación tarda en girar: durante ese tiempo no acepta otra orden
   contactMult: 1.3, // el lado al que no se mira golpea más fuerte
+  separateGapMs: 9000, // Fácil: margen entre el último choque de un lado y el primero del otro
+  togetherMs: 2500, // Difícil: cuánto antes llega el segundo lado de cada oleada
 };
 
 export const FORMATION = {
@@ -116,7 +127,9 @@ export const VOICE = {
  * balance de referencia (el que validan los bots de prueba).
  */
 export const DIFFICULTY = {
-  easy: { id: 'easy', label: 'Fácil', enemyHp: 0.8, contact: 0.75, arrows: 0.75, warning: 1.35, bossResolve: 0.8, cohesionBonus: 1.5, score: 0.75 },
-  normal: { id: 'normal', label: 'Normal', enemyHp: 1, contact: 1, arrows: 1, warning: 1, bossResolve: 1, cohesionBonus: 1, score: 1 },
-  hard: { id: 'hard', label: 'Difícil', enemyHp: 1.05, contact: 1.05, arrows: 1.15, warning: 0.85, bossResolve: 1.1, cohesionBonus: 1, score: 1.5 },
+  // flank (senda de Anopea): 'separate' = un solo lado cada vez y la falange gira sola;
+  // 'mixed' = oleadas tal como se diseñaron; 'together' = frente y retaguardia coinciden más.
+  easy: { id: 'easy', label: 'Fácil', enemyHp: 0.8, contact: 0.75, arrows: 0.75, warning: 1.35, bossResolve: 0.8, cohesionBonus: 1.5, score: 0.75, flank: 'separate', autoTurn: true },
+  normal: { id: 'normal', label: 'Normal', enemyHp: 1, contact: 1, arrows: 1, warning: 1, bossResolve: 1, cohesionBonus: 1, score: 1, flank: 'mixed', autoTurn: false },
+  hard: { id: 'hard', label: 'Difícil', enemyHp: 1.05, contact: 1.05, arrows: 1.15, warning: 0.85, bossResolve: 1.1, cohesionBonus: 1, score: 1.5, flank: 'together', autoTurn: false },
 };

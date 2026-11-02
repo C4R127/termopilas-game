@@ -40,7 +40,7 @@ export class BattleScene extends Phaser.Scene {
     const { bus, state } = this.app;
     this.reduceEffects = this.app.settings.get('access', 'reduceEffects');
     this.lightCtx = { waveIndex: 0, boss: false };
-    ({ lighting: this.lighting } = createBackdrop(this, { light: this.#lightId() }));
+    ({ lighting: this.lighting } = createBackdrop(this, { light: this.#lightId(), ...this.backdropOptions?.() }));
     this.app.lastLight = this.lighting.id;
 
     this.sim = this.createSimulation();

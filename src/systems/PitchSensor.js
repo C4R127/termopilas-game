@@ -13,6 +13,9 @@ export const PITCH = {
   windowMs: 3000, // fotogramas anteriores a una frase reconocida que se le atribuyen
   minFrames: 30, // fotogramas con voz necesarios para decidir (≈1,5 s de habla)
   minUtterances: 2, // y al menos dos frases distintas
+  panelMinMs: 2500, // panel de identificación: escucha al menos esto (lo que dura la frase)…
+  panelMaxMs: 8000, // …y como mucho esto si aún no ha oído voz suficiente
+  panelMinFrames: 16, // fotogramas con voz necesarios en el panel (≈0,8 s de habla)
   minHz: 70,
   maxHz: 400,
 };
@@ -102,6 +105,18 @@ export class PitchProfile {
 }
 
 /**
+ * Decisión del panel de identificación: con voz suficiente, el trato por el tono
+ * mediano; si no, null (hay que repetir).
+ */
+export function identityFromSamples(samples, minFrames = PITCH.panelMinFrames) {
+  if (samples.length < minFrames) return null;
+  const sorted = [...samples].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return { identity: identityFromPitch(median), median };
+}
+
+/**
  * Escucha el micrófono con Web Audio y entrega el tono de cada fragmento.
  * Se detiene en cuanto ya no hace falta (y libera el micrófono).
  */
@@ -116,14 +131,16 @@ export class PitchSensor {
     return !!(globalThis.navigator?.mediaDevices?.getUserMedia && (globalThis.AudioContext || globalThis.webkitAudioContext));
   }
 
+  /** @returns {Promise<boolean>} true si el micrófono quedó abierto */
   async start() {
-    if (this.running || !PitchSensor.supported) return;
+    if (this.running) return true;
+    if (!PitchSensor.supported) return false;
     this.running = true;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       if (!this.running) {
         stream.getTracks().forEach((t) => t.stop());
-        return;
+        return false;
       }
       const Ctx = globalThis.AudioContext || globalThis.webkitAudioContext;
       this.ctx = new Ctx();
@@ -142,8 +159,10 @@ export class PitchSensor {
         const hz = estimatePitch(half, this.ctx.sampleRate / 2);
         if (hz) this.onFrame(hz, performance.now());
       }, PITCH.frameMs);
+      return true;
     } catch {
       this.running = false; // sin permiso o sin micrófono: Leónidas usa la forma neutra
+      return false;
     }
   }
 

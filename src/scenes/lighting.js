@@ -4,6 +4,7 @@
 // Es solo presentación: no cambia ninguna regla de juego.
 import Phaser from 'phaser';
 import { LIGHTS, lightMatrix } from '../config/lighting.js';
+import { PARALLAX } from '../config/balance.js';
 
 export { LIGHT_SETTING, resolveLight } from '../config/lighting.js';
 
@@ -35,7 +36,13 @@ export function createLighting(scene, id = 'dawn') {
     const hide = (obj) => { if (!night.fire.includes(obj)) obj.cameraFilter |= fireCam.id; };
     scene.children.list.forEach(hide);
     scene.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, hide);
-    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, hide));
+    // Cuando la cámara se desliza (Anopea), las luces la acompañan.
+    const follow = () => { fireCam.scrollX = scene.cameras.main.scrollX; };
+    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, follow);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      scene.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, hide);
+      scene.events.off(Phaser.Scenes.Events.POST_UPDATE, follow);
+    });
   }
   let current = mix(LIGHTS[id], LIGHTS[id], 0);
   let tween = null;
@@ -72,20 +79,20 @@ function createNightLayer(scene) {
   const rnd = new Phaser.Math.RandomDataGenerator(['termopilas-noche']); // el mismo cielo en cada partida
   // Estrellas sobre el cielo, por debajo de las nubes.
   const stars = [];
-  for (let i = 0; i < 36; i++) {
-    const s = scene.add.rectangle(rnd.between(2, 318), rnd.between(2, 62), 1, 1, i % 5 ? 0xf3e7c9 : 0xffffff).setOrigin(0).setDepth(-39);
+  for (let i = 0; i < 44; i++) {
+    const s = scene.add.rectangle(rnd.between(-66, 318), rnd.between(2, 62), 1, 1, i % 5 ? 0xf3e7c9 : 0xffffff).setOrigin(0).setDepth(-39).setScrollFactor(PARALLAX.sky, 1);
     s.base = rnd.realInRange(0.45, 1);
     s.phase = rnd.realInRange(0, Math.PI * 2);
     stars.push(s);
   }
   items.push(...stars);
   // Luna creciente: un disco claro mordido por otro del color del cielo nocturno.
-  const moon = scene.add.circle(252, 20, 5, 0xf3e7c9).setDepth(-38);
-  const bite = scene.add.circle(255, 18, 4.5, 0x33425e).setDepth(-38);
+  const moon = scene.add.circle(252, 20, 5, 0xf3e7c9).setDepth(-38).setScrollFactor(PARALLAX.sky, 1);
+  const bite = scene.add.circle(255, 18, 4.5, 0x33425e).setDepth(-38).setScrollFactor(PARALLAX.sky, 1);
   items.push(moon, bite);
   // Velo nocturno sobre el cielo (el sol del amanecer queda oculto).
-  const veil = scene.add.rectangle(0, 0, 320, 100, 0x1d2638).setOrigin(0).setDepth(-39.5);
-  const sunCover = scene.add.circle(SUN[0], SUN[1], 11, 0x1d2638).setDepth(-39.4); // el sol del amanecer, pintado en el cielo
+  const veil = scene.add.rectangle(-120, 0, 440, 100, 0x1d2638).setOrigin(0).setDepth(-39.5).setScrollFactor(PARALLAX.sky, 1);
+  const sunCover = scene.add.circle(SUN[0], SUN[1], 11, 0x1d2638).setDepth(-39.4).setScrollFactor(PARALLAX.sky, 1); // el sol del amanecer, pintado en el cielo
   items.push(veil, sunCover);
   // Antorchas y hogueras: halos aditivos en anillos escalonados (luz «pixel») que parpadean.
   const lights = [];

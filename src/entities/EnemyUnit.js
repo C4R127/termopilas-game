@@ -123,7 +123,7 @@ export class EnemyUnit extends Phaser.GameObjects.Sprite {
     this.setFlipX(this.rear);
     this.anims.timeScale = 1;
     this.anims.play(ANIMS[this.record.type].advance, true);
-    this.scene.tweens.add({ targets: this, x: this.rear ? -40 : 340, duration: 2200 + Math.random() * 600, ease: 'Sine.easeIn', onComplete: () => this.destroy() });
+    this.scene.tweens.add({ targets: this, x: this.rear ? -150 : 340, duration: 2200 + Math.random() * 600, ease: 'Sine.easeIn', onComplete: () => this.destroy() });
   }
 
   /** Atraviesa la línea y se pierde en la retaguardia. */

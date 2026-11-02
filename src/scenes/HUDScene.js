@@ -41,11 +41,14 @@ export class HUDScene extends Phaser.Scene {
     ]);
     this.warnBar = this.add.rectangle(-26, 5, 52, 2, 0xe8a63a).setOrigin(0, 0.5);
     this.warn.add(this.warnBar);
+    // En la senda de Anopea, flechas en los bordes con los enemigos que se acercan fuera de la vista.
+    this.edges = this.app.battleKey === 'AnopaeaScene' ? ['left', 'right'].map((side) => this.#edgeMarker(side)) : [];
 
     this.offs = [
       bus.on(EVENTS.ENEMY_SPAWNED, ({ enemy }) => this.#flankNotice(enemy)),
-      bus.on(EVENTS.FORMATION_TURNED, ({ facing }) => {
-        hud.alert(facing === 'rear' ? 'La falange encara la senda de Anopea' : 'La falange encara el paso', 'ok', 1600, { icon: 12 });
+      bus.on(EVENTS.FORMATION_TURNED, ({ facing, auto }) => {
+        const where = facing === 'rear' ? 'la senda de Anopea' : 'el paso';
+        hud.alert(auto ? `La falange gira sola y encara ${where}` : `La falange encara ${where}`, 'ok', 1600, { icon: 12 });
       }),
       bus.on(EVENTS.ENEMY_SPAWNED, ({ enemy }) => {
         // Primer guardia de élite de cada oleada: aviso con la táctica a seguir.
@@ -136,6 +139,11 @@ export class HUDScene extends Phaser.Scene {
     const { state, sim, hud } = this.app;
     if (!sim) return;
     const waves = sim.waves;
+    const battle = this.scene.get(this.app.battleKey);
+    const cam = battle?.cameras?.main;
+    // El aviso de flechas sigue a la falange aunque la cámara se desplace.
+    if (cam && battle.formation) this.warn.x = Math.round(battle.formation.midX - cam.scrollX);
+    if (cam && this.edges.length) this.#updateEdges(cam.worldView, state.simTime);
 
     if (this.warn.visible && this.warnTotal) {
       const left = Math.max(0, this.warnUntil - state.simTime);
@@ -181,9 +189,42 @@ export class HUDScene extends Phaser.Scene {
     const id = `${waveIndex}-${enemy.side}`;
     if (this.flankWarned.has(id)) return;
     this.flankWarned.add(id);
-    const text = enemy.side === 'rear' ? '¡Enemigos por la senda, a nuestra espalda! Ordena MEDIA VUELTA' : '¡Enemigos en el paso! MEDIA VUELTA para encararlos';
+    const auto = this.app.sim.diff.autoTurn;
+    const text = enemy.side === 'rear'
+      ? `¡Enemigos por la senda, a nuestra espalda!${auto ? ' La falange girará al llegar' : ' Ordena MEDIA VUELTA'}`
+      : `¡Enemigos en el paso!${auto ? ' La falange girará al llegar' : ' MEDIA VUELTA para encararlos'}`;
     this.app.hud.alert(text, 'danger', 3200, { icon: 12 });
     this.app.audio.play('warning');
+  }
+
+  /** Marcador de borde: flecha y número de enemigos que llegan por ese lado sin verse. */
+  #edgeMarker(side) {
+    const left = side === 'left';
+    const box = this.add.container(left ? 13 : 307, 122).setVisible(false);
+    const bg = this.add.rectangle(0, 0, 22, 13, 0x120d0a, 0.85).setStrokeStyle(1, 0xd0533f);
+    const arrow = left ? this.add.triangle(-6, 0, 0, 3.5, 5, 0, 5, 7, 0xff8a70) : this.add.triangle(6, 0, 5, 3.5, 0, 0, 0, 7, 0xff8a70);
+    const count = pixelText(this, left ? 3 : -3, 0, '0', { tint: 0xffd0a0 });
+    box.add([bg, arrow, count]);
+    return { box, count, bg, left, shown: 0 };
+  }
+
+  #updateEdges(view, now) {
+    const counts = { left: 0, right: 0 };
+    for (const e of this.app.sim.enemies) {
+      if (e.removed) continue;
+      if (e.x < view.x + 4) counts.left++;
+      else if (e.x > view.right - 4) counts.right++;
+    }
+    const blink = !this.app.settings.get('access', 'reduceEffects') && Math.floor(now / 300) % 2 === 0;
+    for (const m of this.edges) {
+      const n = counts[m.left ? 'left' : 'right'];
+      m.box.setVisible(n > 0);
+      if (n !== m.shown) {
+        m.shown = n;
+        m.count.setText(String(n));
+      }
+      m.bg.setStrokeStyle(1, blink ? 0xff8a70 : 0xd0533f);
+    }
   }
 
   /** Avisa una vez cuando una orden con enfriamiento vuelve a estar disponible. */

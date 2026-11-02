@@ -3,6 +3,9 @@
 // paso; la falange queda atacada por delante y por detrás. Oleadas de juego,
 // no un orden literal de los hechos. `side: 'rear'` = llegan por la espalda.
 
+import { DIFFICULTY, FLANK, LANE } from '../config/balance.js';
+import { ENEMY_TYPES } from './waves.js';
+
 export const ANOPAEA = {
   id: 'anopaea',
   name: 'Día 3: la senda de Anopea',
@@ -29,7 +32,7 @@ export const ANOPAEA = {
       restMs: 4000,
       groups: [
         { type: 'elite', side: 'rear', count: 2, delayMs: 1500, intervalMs: 6000, rows: [1, 0] },
-        { type: 'infantry', count: 3, delayMs: 11000, intervalMs: 2600, rows: [2, 1, 0] },
+        { type: 'infantry', count: 3, delayMs: 16000, intervalMs: 2600, rows: [2, 1, 0] },
       ],
       volley: { warningMs: 2200, intervalMs: 7500 },
     },
@@ -40,9 +43,9 @@ export const ANOPAEA = {
       restMs: 4000,
       groups: [
         { type: 'infantry', side: 'rear', count: 3, delayMs: 500, intervalMs: 2200, rows: [0, 2, 1] },
-        { type: 'infantry', count: 3, delayMs: 0, intervalMs: 2400, rows: [1, 2, 0] },
-        { type: 'archer', count: 1, delayMs: 9000, intervalMs: 0, rows: [2] },
-        { type: 'elite', side: 'rear', count: 1, delayMs: 24000, intervalMs: 0, rows: [1] },
+        { type: 'infantry', count: 3, delayMs: 4000, intervalMs: 2400, rows: [1, 2, 0] },
+        { type: 'archer', count: 1, delayMs: 13000, intervalMs: 0, rows: [2] },
+        { type: 'elite', side: 'rear', count: 1, delayMs: 21000, intervalMs: 0, rows: [1] },
       ],
       volley: { warningMs: 2000, intervalMs: 7000 },
     },
@@ -53,11 +56,59 @@ export const ANOPAEA = {
       restMs: 5000,
       groups: [
         { type: 'infantry', side: 'rear', count: 3, delayMs: 0, intervalMs: 2000, rows: [1, 0, 2] },
-        { type: 'mixed', mix: ['infantry', 'elite', 'infantry'], count: 4, delayMs: 2500, intervalMs: 3000, rows: [2, 1, 0, 2] },
-        { type: 'archer', count: 2, delayMs: 4000, intervalMs: 1200, rows: [0, 2] },
-        { type: 'infantry', side: 'rear', count: 2, delayMs: 34000, intervalMs: 2500, rows: [2, 0] },
+        { type: 'mixed', mix: ['infantry', 'elite', 'infantry'], count: 4, delayMs: 5000, intervalMs: 3000, rows: [2, 1, 0, 2] },
+        { type: 'archer', count: 2, delayMs: 7000, intervalMs: 1200, rows: [0, 2] },
+        { type: 'infantry', side: 'rear', count: 2, delayMs: 32000, intervalMs: 2500, rows: [2, 0] },
       ],
       volley: { warningMs: 1900, intervalMs: 7000 },
     },
   ],
 };
+
+/** Tiempo (ms) desde que aparece un grupo hasta que su primer soldado choca con la línea. */
+function travelMs(group) {
+  const types = group.type === 'mixed' ? group.mix : [group.type];
+  const speed = Math.min(...types.map((t) => ENEMY_TYPES[t].speed)); // el más lento marca el paso
+  const contact = LANE.frontX + LANE.contactGap;
+  const start = group.side === 'rear' ? LANE.rearMirror - LANE.rearSpawnX : LANE.spawnX;
+  return ((start - contact) / speed) * 1000;
+}
+
+const firstContact = (g) => g.delayMs + travelMs(g);
+const lastContact = (g) => g.delayMs + (g.count - 1) * g.intervalMs + travelMs(g);
+
+/**
+ * Oleadas de la senda según la dificultad (DIFFICULTY[id].flank):
+ * - 'separate': por orden de llegada, cuando el siguiente grupo viene por el otro
+ *   lado se retrasa (él y los que le siguen) hasta que el anterior haya llegado
+ *   entero, más un margen; así nunca atacan los dos lados a la vez.
+ * - 'mixed': las oleadas tal como están arriba.
+ * - 'together': el lado que llega después se adelanta para coincidir con el primero.
+ */
+export function anopaeaWaves(difficulty = 'normal') {
+  const mode = (DIFFICULTY[difficulty] ?? DIFFICULTY.normal).flank;
+  if (mode === 'mixed') return ANOPAEA.waves;
+  return ANOPAEA.waves.map((wave) => {
+    const sides = new Set(wave.groups.map((g) => g.side ?? 'front'));
+    if (sides.size < 2) return wave;
+    const order = [...wave.groups].sort((a, b) => firstContact(a) - firstContact(b));
+    const delays = new Map();
+    if (mode === 'separate') {
+      let shift = 0;
+      let side = null;
+      let blockEnd = -Infinity;
+      for (const g of order) {
+        const gSide = g.side ?? 'front';
+        if (side && gSide !== side) shift += Math.max(0, blockEnd + FLANK.separateGapMs - (firstContact(g) + shift));
+        if (gSide !== side) blockEnd = -Infinity;
+        side = gSide;
+        blockEnd = Math.max(blockEnd, lastContact(g) + shift);
+        delays.set(g, Math.round(g.delayMs + shift));
+      }
+    } else {
+      const second = (order[0].side ?? 'front') === 'front' ? 'rear' : 'front';
+      for (const g of order) delays.set(g, (g.side ?? 'front') === second ? Math.max(0, g.delayMs - FLANK.togetherMs) : g.delayMs);
+    }
+    return { ...wave, groups: wave.groups.map((g) => ({ ...g, delayMs: delays.get(g) })) };
+  });
+}
