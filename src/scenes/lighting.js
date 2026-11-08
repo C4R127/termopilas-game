@@ -92,7 +92,9 @@ function createNightLayer(scene) {
   items.push(moon, bite);
   // Velo nocturno sobre el cielo (el sol del amanecer queda oculto).
   const veil = scene.add.rectangle(-120, 0, 440, 100, 0x1d2638).setOrigin(0).setDepth(-39.5).setScrollFactor(PARALLAX.sky, 1);
-  const sunCover = scene.add.circle(SUN[0], SUN[1], 11, 0x1d2638).setDepth(-39.4).setScrollFactor(PARALLAX.sky, 1); // el sol del amanecer, pintado en el cielo
+  // El sol del amanecer está pintado en el cielo: de noche se tapa con el color del cielo que lo rodea,
+  // debajo del velo, para que se oscurezca igual que el resto (sin dejar un disco más oscuro).
+  const sunCover = scene.add.circle(SUN[0], SUN[1], 19, 0xc7ae8e).setDepth(-39.6).setScrollFactor(PARALLAX.sky, 1);
   items.push(veil, sunCover);
   // Antorchas y hogueras: halos aditivos en anillos escalonados (luz «pixel») que parpadean.
   const lights = [];
@@ -152,7 +154,7 @@ function createNightLayer(scene) {
       moon.alpha = level;
       bite.alpha = level;
       veil.alpha = level * 0.55;
-      sunCover.alpha = level * 0.85;
+      sunCover.alpha = Math.min(1, level * 1.2);
       for (const l of lights) l.halo.alpha = level * l.base;
       for (const f of flames) f.alpha = Math.min(1, level * 1.4);
       for (const p of sparks) p.emitting = level > 0.5;

@@ -1,119 +1,162 @@
 # 300: El Paso de las Termópilas
 
-**Jugar en línea:** https://c4r127.github.io/termopilas-game/
+**Estrategia táctica en pixel art con órdenes de voz.** Dirige a la falange griega en el paso de las Termópilas (480 a. C.) y resiste el avance del ejército de Jerjes con tu voz, con el teclado o con los botones.
 
-Juego web de defensa táctica en 2D con pixel art, inspirado en la batalla de las Termópilas (480 a. C.). Diriges la falange con órdenes de voz, con el teclado o con los botones. Está hecho con HTML5, CSS3, JavaScript (ES Modules), Phaser 3.90 y la Web Speech API.
+### [▶ Jugar en línea](https://c4r127.github.io/termopilas-game/)
 
-Esta es la **versión final** del documento *Termopilas_Documentacion_Fases_Beta_Final.docx* (sección 10.4). Parte del Avance 1 (beta), que ya fue aprobado.
+Funciona en el navegador, sin instalar nada, en ordenador, tableta y móvil. Para mandar con la voz, usa Chrome o Edge.
 
-## Arrancar
+![Menú principal: logotipo «300», selector de dificultad, campaña, tutorial y escenario de la senda de Anopea](media/menu.png)
 
-Requiere Node.js 20.19+ (o 22.12+).
+## El juego
 
-```bash
-npm install
-npm run dev        # http://localhost:5195/termopilas-game/
-npm run build      # versión de producción en dist/
-npm run deploy     # publica dist/ en la rama gh-pages (GitHub Pages)
-```
+Termópilas, 480 a. C. Un paso estrecho entre la montaña y el mar, y una línea de hoplitas que no puede ceder. Cada orden cuenta: levanta los **escudos** cuando caen las flechas, ataca con las **lanzas** cuando la infantería choca con la línea, **empuja** al enemigo hacia el acantilado y pide **relevo** antes de que la falange se agote. Leónidas te acompaña con partes, consejos y avisos durante toda la batalla.
 
-Juega desde el servidor de desarrollo, no abriendo `index.html` directamente. Para usar la voz, usa Chrome o Edge.
+Puedes jugar la **campaña** (cinco oleadas y un enfrentamiento final contra Jerjes I), el **escenario histórico de la senda de Anopea** (el tercer día, rodeados por delante y por detrás) o empezar por el **tutorial** guiado.
 
-## Qué incluye la versión final
+## Capturas
 
-| Área | Contenido |
-|---|---|
-| Campaña | Cinco oleadas con dificultad creciente y pausas de recuperación (Exploración, Presión combinada, Presión creciente, Guardia de élite y Última línea) y un enfrentamiento final con Jerjes I. |
-| Jefe final: Jerjes I | Fiel a Heródoto, Jerjes no combate en persona: dirige el asalto desde su trono al fondo del paso. Lanza **decretos** con aviso previo, cada uno con una respuesta distinta: «Que las flechas oculten el sol» (tormenta de 3–4 descargas seguidas: hay que sostener los escudos y empujar entre descarga y descarga a quien lleve mucho tiempo trabado), «Látigos de los capitanes» (la infantería se enfurece, más rápida y peligrosa, y solo el empuje la calma) y «Carga de la guardia real» (2–3 guardias de élite a la vez). Su **determinación** (80) baja al resistir decretos, empujar enfurecidos y abatir tropas, y sube con cada brecha. Al cruzar dos umbrales se levanta del trono y los decretos se endurecen y se combinan; a cero, ordena la retirada. Antes del enfrentamiento la falange recupera 50 de cohesión y toda la resistencia. |
-| Dificultad | Fácil, Normal y Difícil, elegibles en el menú y en Ajustes. Cambian la vida y el golpe de los enemigos, el daño de las flechas, el tiempo de aviso, la determinación de Jerjes, la cohesión recuperada entre oleadas y la puntuación (×0,75, ×1 y ×1,5). En la senda de Anopea también cambian los dos frentes: en Fácil atacan por un solo lado cada vez y la falange gira sola hacia el peligro (pensado para jugar con la voz); en Normal tú ordenas la media vuelta; en Difícil frente y retaguardia coinciden más a menudo. Los enemigos son los mismos: solo cambia cuándo llegan. |
-| Escenario histórico: la senda de Anopea | Día 3: Efialtes guía a los persas por el sendero de la montaña y la falange queda rodeada. Cuatro oleadas llegan por el paso y por la retaguardia (los de la senda entran por la izquierda). La orden **Media vuelta** gira la formación; el lado al que no se mira golpea un 30 % más fuerte y la falange solo ataca y empuja hacia donde mira. Por la senda no cae nadie al mar. Tiene su propia entrada en el menú, mensajes de Leónidas, resultado y nota histórica, y no termina con Jerjes. El escenario se amplía hacia el oeste (el Calídromo con la senda bajando en zigzag): al hacer media vuelta la cámara se desliza hacia la senda y la falange queda centrada, con unos 120 px de campo a cada lado; una flecha en el borde contrario cuenta los enemigos que llegan sin verse. El cielo y la lejanía se mueven con paralaje. |
-| Móvil y tableta | En horizontal, las órdenes pasan a una columna a la derecha y la barra superior se reduce a una línea, así el campo de batalla ocupa casi toda la pantalla (560 × 315 en un móvil de 812 × 375, frente a 160 × 90 antes). En vertical, botones grandes en dos columnas y una sugerencia para girar el dispositivo. Al empezar desde una pantalla táctil, el juego pasa a pantalla completa y fija la orientación horizontal si el navegador lo permite. Hay un botón de pantalla completa, los atajos de teclado se ocultan con el dedo, no hay zoom por doble toque y se respetan las muescas. Vibraciones breves al tocar una orden, al encajar flechas y con cada brecha (se desactivan con «Reducir destellos y partículas»). |
-| Iluminación | Amanecer, mediodía, atardecer y noche. En automático, el día avanza con la batalla: la campaña va del amanecer a la noche, en la que llega Jerjes, y en la senda de Anopea los persas bajan de noche y atacan con el día. De noche hay estrellas, luna, antorchas en el muro de los focenses y hogueras en el campamento persa. En Ajustes se puede fijar una luz. |
-| Identificación por voz | Al pulsar «Comenzar campaña» o «La senda de Anopea», Leónidas pide oír tu voz: pulsas «Identificar mi voz» y dices en voz alta «¡Firmes en la línea, por la Hélade!». El juego estima el tono (frecuencia fundamental, con Web Audio y en el momento) y muestra «aliada» (voz aguda), «aliado» (voz grave) o «estratega» (tono intermedio). Puedes repetir, corregirlo con un botón o saltar el paso. Si lo saltas, el juego vuelve a intentarlo con tus primeras órdenes de voz en la batalla. No se graba ni se guarda audio, ni el resultado. En Ajustes se puede fijar el trato, y entonces no aparece el panel ni se analiza nada. |
-| Enemigos | Cuatro patrones: infantería, arqueros, guardia de élite (arquetipo jugable inspirado en los «Inmortales») y grupos mixtos. |
-| Órdenes | Escudos (anulan las flechas), Lanzas, Empujen (retroceso; al mar junto al acantilado; desequilibra a la élite) y Relevo, con enfriamientos y una orden en espera durante las transiciones. En la senda de Anopea, además, Media vuelta. |
-| Tutorial | Nueve pasos guiados por Leónidas con situaciones preparadas: una para cada orden, otra para la guardia de élite y otra para la voz. Es de texto y no se puede perder; las instrucciones habladas son opcionales (botón 🔊 o Ajustes). |
-| Leónidas | Figura de mando en la introducción, el tutorial y la campaña. Da un parte al empezar, la orden de cada oleada y una valoración al superarla, avisa una vez por oleada si la cohesión cae, si hay brecha o si la línea se agota, y despide la campaña. Sus mensajes aparecen en un panel con su retrato y se pueden leer en voz alta. |
-| Arte | Escenario por capas (cielo con nubes, Eubea y el golfo, ladera del Calídromo, el paso y mar animado). Hoplitas con reposo, defensa, ataque, empuje, cansancio, relevo, derrota, victoria y retirada fuera de pantalla (en el relevo, la primera línea cansada sale por la izquierda y entra un hoplita de refresco; en la derrota se retira la reserva). Infantería, arqueros y guardia de élite persas; retrato de Leónidas e iconos. Logotipo pixel en el menú («300» con dos escudos espartanos como ceros, lanzas cruzadas y cinta con «TERMÓPILAS»). Combate animado: la segunda fila también clava las lanzas, chispas en el cuerpo a cuerpo, el enemigo recula al recibir un golpe y cae despedido al morir, onda del empuje, sacudida al caer un guardia real y vítores al superar cada oleada. |
-| Audio | Música original sintetizada: tema de menú, tema de batalla que gana capas con la intensidad y remates de victoria y derrota. Efectos para cada evento importante. Hay volúmenes de general, música y efectos, además de un botón de silencio. |
-| Ajustes | Sonido, accesibilidad, teclas reasignables, voz (idioma, precisión exigida y «Probar micrófono»), dificultad e iluminación. Se guardan en el navegador. |
-| Accesibilidad | Todo se juega sin voz. También incluye reducir destellos y partículas, alto contraste, texto más grande, texto normal en lugar de la fuente pixel (todo el texto usa Pixelify Sans por defecto), avisos de flechas más largos y lectura en voz alta de los mensajes. Los estados no dependen solo del color (icono, texto y animación), y los menús y el HUD son HTML accesibles con teclado. |
-| Resultado | Puntuación, oleadas, tiempo, bajas por tipo, caídos al mar, flechas bloqueadas, órdenes por voz, teclado y botón, porcentaje de frases de voz entendidas y una tabla por oleada. |
-| Historia | Epílogo con una línea temporal (de Maratón a Platea), la distinción entre lo documentado y lo simulado, y las fuentes. |
+<table>
+  <tr>
+    <td width="50%"><img src="media/battle.png" alt="Batalla al amanecer: la falange frena a la infantería persa mientras los arqueros se preparan"></td>
+    <td width="50%"><img src="media/xerxes.png" alt="Enfrentamiento final de noche: Jerjes en su trono lanza una tormenta de flechas; antorchas en el muro"></td>
+  </tr>
+  <tr>
+    <td><b>Campaña.</b> Cinco oleadas de infantería, arqueros y guardia real. Las barras de cohesión, resistencia y moral te dicen cuándo cambiar de formación.</td>
+    <td><b>Jerjes I.</b> El jefe final dirige el asalto desde su trono con decretos: tormentas de flechas, látigos que enfurecen a sus tropas y cargas de la guardia real.</td>
+  </tr>
+  <tr>
+    <td><img src="media/anopaea.png" alt="Senda de Anopea: la falange da media vuelta para encarar a los Inmortales que bajan por la montaña"></td>
+    <td><img src="media/voiceid.png" alt="Panel «Antes de la batalla»: Leónidas reconoce la voz y propone el trato «aliada»"></td>
+  </tr>
+  <tr>
+    <td><b>La senda de Anopea.</b> Efialtes guía a los persas por la montaña y te atacan por los dos lados. Ordena «media vuelta» y la cámara gira con la falange.</td>
+    <td><b>Antes de la batalla.</b> Leónidas escucha tu voz y decide cómo dirigirse a ti: «aliada», «aliado» o «estratega». Puedes corregirlo o saltarlo.</td>
+  </tr>
+</table>
+
+<p align="center"><img src="media/mobile.png" alt="Versión para móvil en horizontal: las órdenes en una columna a la derecha y el campo de batalla al atardecer" width="720"></p>
+<p align="center"><i>En el móvil, las órdenes pasan a una columna a la derecha y el campo de batalla ocupa casi toda la pantalla.</i></p>
+
+### Más capturas
+
+<table>
+  <tr>
+    <td width="50%"><img src="media/shields.png" alt="Lluvia de flechas: la falange levanta los escudos y las flechas rebotan con chispas"></td>
+    <td width="50%"><img src="media/tutorial.png" alt="Tutorial: Leónidas explica el paso 2 de 9, ordenar LANZAS ante la infantería persa"></td>
+  </tr>
+  <tr>
+    <td><b>Escudos arriba.</b> Cada lluvia de flechas se anuncia con una cuenta atrás. Con los escudos alzados, las flechas rebotan sin hacer daño.</td>
+    <td><b>Tutorial.</b> Nueve pasos guiados por Leónidas, uno para cada orden, que no se pueden perder. Las indicaciones se pueden escuchar en voz alta.</td>
+  </tr>
+  <tr>
+    <td><img src="media/result.png" alt="Pantalla de resultado: «La línea resiste», puntuación, estadísticas y tabla por oleada"></td>
+    <td><img src="media/settings.png" alt="Ajustes: volúmenes, opciones de accesibilidad, teclas reasignables y voz"></td>
+  </tr>
+  <tr>
+    <td><b>Resultado.</b> Puntuación, tiempo, enemigos repelidos, flechas bloqueadas, órdenes por voz, teclado o botón, y una tabla con cada oleada.</td>
+    <td><b>Ajustes.</b> Sonido, accesibilidad (alto contraste, texto grande, menos destellos), teclas reasignables, voz, dificultad e iluminación.</td>
+  </tr>
+</table>
+
+<p align="center"><img src="media/epilogue.png" alt="Epílogo histórico: línea temporal de Maratón a Platea, lo documentado y lo que simula el juego" width="720"></p>
+<p align="center"><i>El epílogo histórico separa lo que cuentan las fuentes de lo que inventa el juego.</i></p>
+
+## Características
+
+- **Órdenes por voz, teclado o botones.** Se juega entero de cualquiera de las tres formas, y se pueden mezclar.
+- **Campaña con jefe final.** Cinco oleadas de dificultad creciente y un enfrentamiento con Jerjes I en dos fases, con decretos que exigen respuestas distintas.
+- **Escenario histórico «La senda de Anopea».** Dos frentes, la orden «media vuelta» y un escenario más amplio con el sendero bajando por el monte Calídromo.
+- **Tres niveles de dificultad.** En Fácil, en la senda de Anopea te atacan por un solo lado cada vez y la falange gira sola, pensado para jugar con la voz.
+- **Leónidas como comandante.** Parte de batalla, órdenes en cada oleada, avisos cuando la línea flaquea y lectura en voz alta opcional.
+- **Luz que cambia con la batalla.** Amanecer, mediodía, atardecer y noche, con estrellas, luna y antorchas en el muro de los focenses.
+- **Pixel art y música originales.** Escenario por capas, animaciones de combate, logotipo propio y música sintetizada que crece con la intensidad.
+- **Móvil y tableta.** Diseño táctil en horizontal y en vertical, pantalla completa y vibración.
+- **Accesible.** Alto contraste, texto más grande o con fuente normal, menos destellos, avisos más largos y menús manejables con teclado.
+- **Historia con rigor.** Un epílogo explica qué ocurrió de verdad (la batalla terminó en victoria persa) y qué es invención del juego.
 
 ## Cómo se juega
 
-| Orden | Voz | Tecla* | Efecto |
+| Orden | Di… | Tecla | Para qué sirve |
 |---|---|---|---|
-| Escudos | «escudos», «escudo», «falange» | 1 | Bloquea el 100 % de las lluvias de flechas y reduce a la mitad la presión cuerpo a cuerpo. No ataca. |
-| Lanzas | «lanzas», «lanza», «ataquen» | 2 | Ataca al enemigo más adelantado de cada fila. Las flechas sí hacen daño. Gasta resistencia. |
-| Empujen | «empujen», «empujad», «empujar», «empuja» | 3 | Retroceso de los enemigos cercanos. Los de la fila del acantilado caen al mar; la guardia de élite queda desequilibrada (vulnerable a las lanzas). Enfriamiento de 6 s. |
-| Relevo | «relevo», «relevos», «cambio», «fuego»** | 4 | La reserva sustituye a la primera línea y recupera 45 de resistencia. Enfriamiento de 10 s. |
-| Media vuelta (solo en la senda de Anopea) | «media vuelta», «retaguardia», «girar» | 5 | La falange encara el otro lado del paso. Durante el giro (0,6 s) no acepta otra orden; la siguiente queda en espera. |
-| Pausa / Continuar | «pausa», «pausar» · «continuar», «reanudar», «seguir» | P / Esc | Congela la partida. En pausa no se aceptan órdenes tácticas. |
-| Micrófono | — | V | Activa o desactiva la escucha. |
-| Sonido | — | M | Silencia o activa el sonido. |
+| **Escudos** | «escudos», «falange» | 1 | Bloquea las lluvias de flechas. No ataca. |
+| **Lanzas** | «lanzas», «ataquen» | 2 | Ataca al enemigo más adelantado de cada fila. Gasta resistencia. |
+| **Empujen** | «empujen», «empujad» | 3 | Hace retroceder al enemigo: junto al acantilado cae al mar y la guardia real queda desequilibrada. |
+| **Relevo** | «relevo», «cambio» | 4 | La reserva toma la primera línea y la falange recupera resistencia. |
+| **Media vuelta** | «media vuelta», «retaguardia» | 5 | Solo en la senda de Anopea: encara el otro lado del paso. |
+| Pausa / continuar | «pausa» / «continuar» | P o Esc | Detiene la partida. |
+| Micrófono / sonido | — | V / M | Activa o silencia. |
 
-\* Teclas por defecto; se pueden cambiar en **Ajustes**. Esc siempre pausa o cierra.
-\*\* «fuego» es solo un alias de juego para el relevo, no una orden de armas de fuego.
+Las teclas se pueden cambiar en **Ajustes**.
 
-- **Cohesión**: es la vida de la línea. Si llega a 0, pierdes. Se recuperan 20 puntos al superar cada oleada.
-- **Resistencia**: la gastan las lanzas y el empuje. Si llega a 0, la formación queda agotada y solo acepta las órdenes Escudos y Relevo.
-- **Moral**: con moral alta las lanzas hacen más daño.
-- **Brechas**: un enemigo trabado 7 s sin caer atraviesa la línea. Con 4 brechas, pierdes.
-- **Lluvias de flechas**: antes de cada descarga hay un aviso con cuenta atrás en la banda superior, sobre los arqueros y sobre la falange.
+**Lo que tienes que vigilar:**
 
-## Voz
+- **Cohesión.** Es la vida de la línea: si llega a cero, la falange cede.
+- **Resistencia.** La gastan las lanzas y el empuje. Agotada, la formación solo acepta escudos y relevo.
+- **Moral.** Con la moral alta, las lanzas hacen más daño.
+- **Brechas.** Un enemigo que pasa demasiado tiempo trabado en la línea la atraviesa. Con cuatro brechas, pierdes.
+- **Flechas.** Cada lluvia se anuncia con una cuenta atrás sobre los arqueros y sobre la falange.
 
-- El idioma es `es-PE`, y en Ajustes se puede cambiar a `es-ES` o `es-MX`. Solo se usan resultados finales del reconocedor, de una **lista cerrada de alias** sin parecidos entre órdenes distintas.
-- Si una frase contiene dos órdenes, se considera ambigua y no se ejecuta nada.
-- La **precisión exigida** (alta, normal o baja) fija la confianza mínima: 0,6, 0,45 o 0,25.
-- La misma orden dicha por voz no se repite antes de 1,2 s.
-- Ninguna orden va directa a los gráficos: todas pasan por `CommandController`.
-- El permiso del micrófono se pide solo tras una acción explícita.
-  - La escucha real ocurre durante la batalla o la prueba de Ajustes, y se detiene al salir.
-  - Durante la pausa sigue escuchando para aceptar «continuar».
-- **Tono de voz**: `PitchSensor` abre el micrófono con Web Audio solo durante la batalla, con la voz activa y el trato en automático. Estima la frecuencia fundamental cada 50 ms por autocorrelación y solo cuenta los fragmentos de los 3 s anteriores a una frase que el reconocedor acaba de oír, para que la música o la narración no cuenten. Con la mediana: menos de 155 Hz → «aliado», más de 175 Hz → «aliada», entre medias → «estratega». El tono no siempre coincide con cómo se identifica cada persona, por eso existe la franja neutra y el ajuste manual.
-- **Lectura en voz alta** (opcional): usa la síntesis de voz del navegador. Mientras Leónidas habla, y durante un margen breve después, lo que oye el micrófono se ignora para que la narración no se convierta en órdenes.
-- No se graba ni se guarda audio, y no hay backend. Si no hay API, se deniega el permiso o falla la red, el HUD lo explica y el teclado y los botones siguen funcionando.
+## Voz y privacidad
 
-## Estructura
+- El reconocimiento de voz lo hace el propio navegador (Web Speech API). El juego solo compara lo que entiende con una lista cerrada de órdenes y nunca ejecuta una frase ambigua.
+- Para saber cómo dirigirse a ti, el juego estima el **tono** de tu voz en el momento, con Web Audio. **No se graba, no se guarda ni se envía audio**, y el resultado tampoco se guarda. Si prefieres que no se analice, fija el trato en **Ajustes**.
+- El micrófono solo se pide cuando tú lo activas, y el juego no tiene servidor propio.
+- Sin micrófono o sin permiso, todo sigue funcionando con el teclado y los botones.
+
+## Ejecutar en local
+
+Necesitas [Node.js](https://nodejs.org/) 20.19 o superior.
+
+```bash
+git clone https://github.com/C4R127/termopilas-game.git
+cd termopilas-game
+npm install
+npm run dev
+```
+
+Abre http://localhost:5195/termopilas-game/ en el navegador. Para generar la versión de producción, usa `npm run build` (sale en `dist/`). `npm run deploy` la publica en GitHub Pages.
+
+> **En Windows PowerShell**, si aparece «la ejecución de scripts está deshabilitada», usa `npm.cmd` en lugar de `npm` (por ejemplo, `npm.cmd run dev`).
+
+## Tecnología
+
+HTML5, CSS3 y JavaScript (ES Modules) con [Phaser 3.90](https://phaser.io/) y [Vite](https://vite.dev/). El lienzo trabaja a 320 × 180 píxeles y se amplía sin suavizado. El HUD y los menús son HTML accesible.
+
+<details>
+<summary><b>Estructura del código</b></summary>
 
 ```
 src/
-├─ main.js                 entrada: Phaser, teclas (según ajustes), botones y escalado del lienzo
-├─ app.js                  composición: estado, bus, ajustes, voz, audio, vistas y navegación
-├─ config/                 balance.js (valores de diseño), gameConfig.js (Phaser), lighting.js (luces)
-├─ scenes/                 Boot, Preload, Menu, Tutorial, Battle, Anopaea, HUD (paralela) y Result
-│                          + backdrop (capas) y lighting (variantes de luz)
-├─ entities/               Formation (reglas), FormationView, EnemyUnit, EventMarker, XerxesView
-├─ systems/                BattleSimulation, CommandController, WaveManager, GameState, TutorialDirector,
-│                          CommanderMessages, BossDirector (Jerjes), PlayerProfile, PitchSensor (tono), SettingsStore,
-│                          VoiceCommandManager, Narrator, AudioManager y EventBus
-├─ data/                   commands.js (órdenes), waves.js (oleadas), anopaea.js (escenario), boss.js (Jerjes),
-│                          leonidas.js (mensajes)
-├─ ui/                     HudView, Screens (menú, ajustes, pausa, resultado, epílogo), TutorialView y CommanderView
-└─ styles/main.css
-public/assets/             pixel art generado (capas, personajes, efectos, iconos, retrato y fuente)
+├─ main.js         entrada: Phaser, teclado, botones y escalado del lienzo
+├─ app.js          composición: estado, eventos, ajustes, voz, audio, pantallas
+├─ config/         valores de diseño (balance.js), Phaser (gameConfig.js) y luces (lighting.js)
+├─ scenes/         menú, tutorial, batalla, senda de Anopea, HUD, resultado, fondo e iluminación
+├─ entities/       la falange (reglas y dibujo), los enemigos y Jerjes
+├─ systems/        simulación de la batalla, órdenes, oleadas, Jerjes, voz, tono, narración, audio
+├─ data/           órdenes, oleadas, escenario de Anopea, Jerjes y mensajes de Leónidas
+├─ ui/             HUD, pantallas, tutorial y panel de Leónidas
+└─ styles/         estilos
+public/assets/     pixel art, mapa del paso y fuente pixel
+media/             capturas de este README
 ```
 
-### Decisiones técnicas
+</details>
 
-- **Reglas independientes de Phaser.** `BattleSimulation` usa un paso fijo de 1/60 s y es determinista, así que la campaña y el tutorial se juegan enteros en Node. Las escenas solo dibujan.
-- **Uso de Phaser.** Phaser se encarga de las escenas, las animaciones, los tweens, las partículas y de Arcade Physics para las flechas (tiro parabólico, reutilizadas desde una reserva) y para los enemigos que caen al mar. El retroceso del empuje se calcula en la simulación para poder probarlo y para que no dependa de la tasa de fotogramas.
-- **Jefe final.** `BossDirector` (sin Phaser) se activa al cerrar la quinta oleada dentro de `BattleSimulation`: anuncia decretos, envía refuerzos, lleva la determinación y las fases, y al llegar a cero llama a la retirada. La simulación añade las tormentas de flechas, el enfurecimiento y la retirada; `XerxesView` solo los dibuja.
-- **Dos frentes.** Cada enemigo tiene un lado (`front` o `rear`). La simulación trabaja con una «coordenada de aproximación» (la x en el frente y su reflejo respecto a `LANE.rearMirror` en la retaguardia), así el movimiento, las lanzas, el contacto y el empuje usan las mismas reglas en los dos lados. `AnopaeaScene` solo cambia la simulación de `BattleScene`.
-- **Iluminación.** Una matriz de color sobre la cámara principal (post-FX de WebGL) da el color de cada momento del día, con transiciones suaves. Las antorchas y hogueras se dibujan en una segunda cámara sin corrección, para que la noche no las vuelva azules. Con el renderizador Canvas el juego funciona igual, sin la corrección de color.
-- **Tutorial.** `TutorialScene` reutiliza `BattleScene` con una simulación sin oleadas en la que la línea nunca cede del todo. `TutorialDirector` prepara cada paso y comprueba el objetivo.
-- **Ajustes.** `SettingsStore` guarda las preferencias en `localStorage`, descarta datos corruptos y funciona en memoria si el almacenamiento está bloqueado. Al reasignar una tecla ocupada, las dos acciones intercambian sus teclas.
-- **HUD y menús en HTML.** El lienzo usa una resolución lógica de 320 × 180 sin suavizado, con zoom entero cuando cabe y siempre en 16:9. El diseño táctil se resuelve con CSS (orientación y tamaño de pantalla), sin una versión aparte.
+<details>
+<summary><b>Decisiones técnicas</b></summary>
 
-## Pruebas
+- **Reglas separadas del dibujo.** La simulación de la batalla avanza a paso fijo (1/60 s) y es determinista: da el mismo resultado con cualquier tasa de fotogramas y se puede jugar entera sin gráficos para equilibrar las oleadas. Las escenas de Phaser solo la dibujan.
+- **Phaser donde aporta.** Escenas, animaciones, tweens, partículas y Arcade Physics para las flechas en parábola y los enemigos que caen al mar.
+- **Dos frentes con las mismas reglas.** Los enemigos de la retaguardia usan una coordenada reflejada, así el movimiento, el contacto, las lanzas y el empuje funcionan igual a los dos lados.
+- **Iluminación.** Una matriz de color sobre la cámara da cada momento del día. El fuego se dibuja en una segunda cámara sin corrección, para que la noche no lo vuelva azul.
+- **Tono de voz.** Autocorrelación sobre fragmentos de 50 ms y la mediana de lo oído. Por debajo de 155 Hz, «aliado»; por encima de 175 Hz, «aliada»; entre medias, «estratega». El tono no siempre coincide con cómo se identifica cada persona, y por eso existen la franja neutra y la corrección manual.
+- **Ajustes** guardados en el navegador, con teclas reasignables, y un diseño táctil resuelto con CSS, sin una versión aparte.
 
-El repositorio contiene solo lo necesario para ejecutar el juego. Las pruebas automáticas, la simulación de balance, el generador de pixel art y la documentación de pruebas de aceptación se mantienen fuera del repositorio.
+</details>
 
-**Pendiente de comprobar:** la voz se probó con un reconocedor simulado. Falta jugar una partida completa con micrófono real en Chrome o Edge.
+## Historia y créditos
 
-## Aviso histórico y de recursos
+Es una **interpretación lúdica** de un hecho real. La batalla terminó en victoria persa, y junto a los «300» espartanos lucharon miles de aliados griegos. Jerjes no combatió en persona y sus «decretos» son una mecánica de juego. La frase «lucharemos a la sombra» se atribuye al espartano Diéneces. El epílogo del juego lo cuenta con una línea temporal y fuentes (Heródoto, *Historias*, libro VII).
 
-Es una interpretación lúdica: la batalla real terminó en victoria persa y junto a los espartanos lucharon miles de aliados griegos. Jerjes no combatió en persona y sus «decretos» son mecánicas inventadas; la frase de luchar a la sombra se atribuye al espartano Diéneces. El epílogo lo explica. Todos los sprites, iconos, la fuente pixel y la música se generan por código en este repositorio. No se usa material de la película *300*.
+Todo el pixel art, los iconos, la fuente pixel y la música se crearon por código para este proyecto. No se usa material de la película *300*.
