@@ -294,6 +294,10 @@ html, body { overscroll-behavior: none; }
   .screen[data-transparent='true'] .menu-actions { margin: 10px 0 6px; gap: 8px; }
   .screen[data-transparent='true'] .btn { padding: 7px 14px; }
   .screen[data-transparent='true'] .fineprint { margin-top: 6px; padding-top: 6px; }
+.panel .menu-credits { margin: 8px 0 0; text-align: center; font-size: 14px; color: var(--muted); }
+.panel .menu-credits b { color: var(--bronze-light); font-weight: 600; }
+/* En el menú, la nota de voz solo ocupa sitio cuando tiene un mensaje. */
+.screen[data-transparent='true'] .voice-note:empty { min-height: 0; margin: 0; }
 }
 /* Más bajas aún: el logotipo ya presenta el juego y la entradilla se omite. */
 @media (max-height: 740px) {
@@ -598,6 +602,10 @@ html, body { overscroll-behavior: none; }
   .screen[data-transparent='true'] .panel { width: min(680px, 100%); padding: 8px 16px; }
   .screen[data-transparent='true'] .panel h1 { font-size: 24px; }
   .logo-wrap { width: 176px; }
+  .panel .menu-credits { margin-top: 0; font-size: 11px; line-height: 1.2; }
+  .screen[data-transparent='true'] .fineprint { line-height: 1.2 !important; }
+  .screen[data-transparent='true'] .menu-actions { margin: 6px 0 2px; }
+  .screen[data-transparent='true'] .panel h1 small { margin-top: -2px; }
   .voiceid-head .tutorial-portrait { width: 36px; height: 36px; }
   .voiceid .lead { margin: 2px 0 6px; }
   .voiceid-result { font-size: 15px; }

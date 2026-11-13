@@ -171,6 +171,7 @@ export class Screens {
           navegador (Chrome o Edge) y puede usar sus servicios en línea; el juego no graba ni guarda audio: interpreta las frases de las
           órdenes y estima el tono de tu voz para que Leónidas te trate de «aliada» o «aliado» (se cambia en Ajustes). Interpretación
           lúdica inspirada en un hecho histórico.</p>
+        <p class="menu-credits">Desarrollado por: <b>Carlos Eduardo Barra Cconcho</b></p>
       </div>`, { transparent: true });
   }
 
