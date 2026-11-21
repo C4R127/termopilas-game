@@ -13,9 +13,9 @@ export const PITCH = {
   windowMs: 3000, // fotogramas anteriores a una frase reconocida que se le atribuyen
   minFrames: 30, // fotogramas con voz necesarios para decidir (≈1,5 s de habla)
   minUtterances: 2, // y al menos dos frases distintas
-  panelMinMs: 2500, // panel de identificación: escucha al menos esto (lo que dura la frase)…
-  panelMaxMs: 8000, // …y como mucho esto si aún no ha oído voz suficiente
-  panelMinFrames: 16, // fotogramas con voz necesarios en el panel (≈0,8 s de habla)
+  panelMaxMs: 6000, // panel de identificación: escucha como mucho esto…
+  panelSilenceMs: 700, // …o hasta que, tras oír voz suficiente, el jugador se calla
+  panelMinFrames: 8, // fotogramas con voz necesarios (≈0,4 s: basta una palabra)
   minHz: 70,
   maxHz: 400,
 };
@@ -124,7 +124,6 @@ export class PitchSensor {
   constructor({ onFrame = () => {} } = {}) {
     this.onFrame = onFrame;
     this.running = false;
-    this.suspended = false; // mientras habla Leónidas no se analiza nada
   }
 
   static get supported() {
@@ -152,7 +151,6 @@ export class PitchSensor {
       const raw = new Float32Array(this.analyser.fftSize);
       const half = new Float32Array(raw.length / 2);
       this.timer = setInterval(() => {
-        if (this.suspended) return;
         this.analyser.getFloatTimeDomainData(raw);
         // Se reduce a la mitad la frecuencia de muestreo: basta para la voz y cuesta cuatro veces menos.
         for (let i = 0; i < half.length; i++) half[i] = (raw[2 * i] + raw[2 * i + 1]) / 2;
@@ -164,10 +162,6 @@ export class PitchSensor {
       this.running = false; // sin permiso o sin micrófono: Leónidas usa la forma neutra
       return false;
     }
-  }
-
-  setSuspended(on) {
-    this.suspended = on;
   }
 
   stop() {

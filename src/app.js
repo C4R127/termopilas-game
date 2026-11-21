@@ -4,7 +4,6 @@ import { LEONIDAS } from './data/leonidas.js';
 import { AudioManager } from './systems/AudioManager.js';
 import { EventBus, EVENTS } from './systems/EventBus.js';
 import { GameState } from './systems/GameState.js';
-import { Narrator } from './systems/Narrator.js';
 import { identityFromSamples, PITCH, PitchProfile, PitchSensor } from './systems/PitchSensor.js';
 import { IDENTITIES, personalize, resolveIdentity } from './systems/PlayerProfile.js';
 import { keyLabel, SettingsStore, VOICE_SENSITIVITY } from './systems/SettingsStore.js';
@@ -68,7 +67,6 @@ export function createApp() {
 
     // ── Navegación ────────────────────────────────────────────────────────
     enterMenu() {
-      narrator.stop();
       commanderView.hide();
       this.setScene('MenuScene');
       state.phase = 'idle';
@@ -92,7 +90,6 @@ export function createApp() {
 
     startBattle(key = 'BattleScene') {
       audio.unlock();
-      narrator.stop();
       commanderView.hide();
       screens.hide();
       tutorialView.show(false);
@@ -124,7 +121,6 @@ export function createApp() {
       if (key !== 'TutorialScene' && settings.get('player', 'address') === 'auto' && PitchSensor.supported) {
         this.pendingStart = key;
         screens.voiceId({ phase: 'ask', identity: this.detectedIdentity });
-        this.narrate(LEONIDAS.voiceIdAsk);
         return;
       }
       this.startBattle(key);
@@ -134,11 +130,12 @@ export function createApp() {
     /** Escucha unos segundos y decide el trato por el tono mediano. */
     async voiceIdListen() {
       if (this.voiceIdListening) return;
-      narrator.stop();
       this.voiceIdListening = true;
       const samples = [];
-      const sensor = new PitchSensor({ onFrame: (hz) => {
+      let lastVoiceAt = null;
+      const sensor = new PitchSensor({ onFrame: (hz, t) => {
         samples.push(hz);
+        lastVoiceAt = t;
         screens.voiceIdProgress(Math.min(1, samples.length / PITCH.panelMinFrames));
       } });
       screens.voiceId({ phase: 'listening' });
@@ -148,11 +145,12 @@ export function createApp() {
         screens.voiceId({ phase: 'error' });
         return;
       }
-      // Termina cuando ha oído la frase (voz de sobra tras el tiempo mínimo) o al agotar el máximo.
+      // Termina cuando, tras oír voz suficiente (basta una palabra), el jugador se calla, o al agotar el máximo.
       const started = performance.now();
       while (screens.current === 'voiceid') {
-        const elapsed = performance.now() - started;
-        if ((elapsed >= PITCH.panelMinMs && samples.length >= PITCH.panelMinFrames * 2) || elapsed >= PITCH.panelMaxMs) break;
+        const now = performance.now();
+        const quiet = now - (lastVoiceAt ?? now) >= PITCH.panelSilenceMs;
+        if ((samples.length >= PITCH.panelMinFrames && quiet) || now - started >= PITCH.panelMaxMs) break;
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
       sensor.stop(); // se libera el micrófono: no se guarda nada
@@ -171,7 +169,6 @@ export function createApp() {
       if (!IDENTITIES[id]) return;
       this.detectedIdentity = id;
       screens.voiceId({ phase: 'done', identity: id, heard });
-      this.narrate(LEONIDAS.voiceIdDone);
     },
 
     voiceIdContinue({ skip = false } = {}) {
@@ -179,7 +176,6 @@ export function createApp() {
       this.presetIdentity = !skip && !!this.detectedIdentity;
       const key = this.pendingStart ?? 'BattleScene';
       this.pendingStart = null;
-      narrator.stop();
       this.startBattle(key);
     },
 
@@ -191,7 +187,6 @@ export function createApp() {
 
     voiceIdCancel() {
       this.pendingStart = null;
-      narrator.stop();
       this.renderMenu();
     },
 
@@ -371,24 +366,10 @@ export function createApp() {
       screens.setVoiceTest('Prueba detenida.', '', false);
     },
 
-    // ── Leónidas y lectura en voz alta ────────────────────────────────────
-    /** Mensaje de Leónidas en la campaña (panel y, si está activada, lectura en voz alta). */
+    // ── Leónidas ──────────────────────────────────────────────────────────
+    /** Mensaje de Leónidas en la campaña: se muestra en su panel (solo texto). */
     say(text) {
       commanderView.show(personalize(text, this.identity()));
-      this.narrate(text);
-    },
-
-    narrate(text) {
-      const audioSet = settings.get('audio');
-      if (!settings.get('access', 'narration') || audioSet.muted) return;
-      narrator.speak(personalize(text, this.identity()), { volume: audioSet.master });
-    },
-
-    toggleNarration() {
-      const on = !settings.get('access', 'narration');
-      settings.set('access', 'narration', on);
-      if (!on) narrator.stop();
-      else if (this.tutorial?.step) this.narrate(this.tutorial.step.text);
     },
 
     keyLabel(action) {
@@ -404,7 +385,6 @@ export function createApp() {
       app.sendCommand(id, 'voice', transcript);
     },
     onHeard: (e) => {
-      if (e.status === 'narration') return; // lo oído era la propia narración
       if (app.voiceTest) {
         const label = e.id ? getCommand(e.id).label.toUpperCase() : null;
         const why = { unknown: 'no es una orden', ambiguous: 'contiene varias órdenes', 'low-confidence': 'no se entendió con claridad', repeat: 'repetida' }[e.status];
@@ -477,35 +457,17 @@ export function createApp() {
   });
   app.screens = screens;
 
-  const narrator = new Narrator({
-    lang: settings.get('voice', 'lang'),
-    // Mientras Leónidas habla, el micrófono no convierte lo que oye en órdenes.
-    onSpeaking: (on) => {
-      voice.setSuspended(on);
-      pitch.setSuspended(on);
-    },
-  });
-  app.narrator = narrator;
-
-  const commanderView = new CommanderView(document.getElementById('commander'), {
-    onToggleNarration: () => app.toggleNarration(),
-  });
+  const commanderView = new CommanderView(document.getElementById('commander'));
 
   const tutorialView = new TutorialView(document.getElementById('tutorial'), {
     onNext: () => app.tutorial?.next(),
     onExit: () => app.goToMenu(),
     onCampaign: () => app.startBattle(),
-    onToggleNarration: () => app.toggleNarration(),
   });
-  let lastTutorial = { text: '', hint: '' };
   bus.on(TUTORIAL_EVENT, (e) => {
     tutorialView.render({ ...e, text: personalize(e.text, app.identity()) });
     if (!e.awaitNext) audio.play('step');
     if (e.finished) settings.set('progress', 'tutorialDone', true);
-    // Se lee el texto nuevo del paso o, si solo cambió, la pista.
-    if (e.text !== lastTutorial.text) app.narrate(e.text);
-    else if (e.hint && e.hint !== lastTutorial.hint) app.narrate(e.hint);
-    lastTutorial = { text: e.text, hint: e.hint };
   });
 
   // ── Ajustes aplicados en vivo ───────────────────────────────────────────
@@ -518,16 +480,12 @@ export function createApp() {
     root.dataset.plainText = String(a.plainText);
     voice.setMinConfidence(VOICE_SENSITIVITY[settings.get('voice', 'sensitivity')].minConfidence);
     hud.setKeyLabels(settings.get('keys'), keyLabel);
-    tutorialView.setNarration(a.narration, narrator.supported);
-    commanderView.setNarration(a.narration, narrator.supported);
   };
   settings.onChange((section, key) => {
     applySettings();
     if (section === 'voice' && key === 'lang') {
       voice.setLanguage(settings.get('voice', 'lang'));
-      narrator.setLanguage(settings.get('voice', 'lang'));
     }
-    if (section === 'audio' && settings.get('audio', 'muted')) narrator.stop();
     if (section === 'player') app.syncPitch();
     if (section === 'game' && key === 'lighting') {
       // También el menú, que está en pausa.
@@ -564,7 +522,6 @@ export function createApp() {
     const scenes = app.game.scene;
     audio.duck(paused);
     if (paused) {
-      narrator.stop();
       scenes.pause(app.battleKey);
       scenes.pause('HUDScene');
       tutorialView.show(false);

@@ -29,9 +29,7 @@ export const LEONIDAS = {
   // Tras las primeras órdenes de voz, cuando ya sabe cómo dirigirse al jugador por el tono.
   voiceRecognized: 'Ya reconozco tu voz, {aliado}. Sigue dando así las órdenes.',
   // Panel previo a la batalla: identificación por el tono de voz.
-  voiceIdAsk: 'Antes de formar, déjame oír tu voz. Pulsa el botón y di en voz alta: «¡Firmes en la línea, por la Hélade!».',
-  voiceIdPhrase: '¡Firmes en la línea, por la Hélade!',
-  voiceIdDone: 'Te reconozco, {aliado}. Ocupa tu puesto en la falange.',
+  voiceIdAsk: 'Antes de formar, déjame oír tu voz. Pulsa el botón y di cualquier palabra en voz alta.',
 };
 
 export const LOW_COHESION = 35; // umbral del aviso de cerrar filas

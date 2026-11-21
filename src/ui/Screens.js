@@ -250,7 +250,6 @@ export class Screens {
             ${check('largeText', 'Texto más grande', 'Amplía el HUD, los botones y los menús.')}
             ${check('plainText', 'Texto normal (sin fuente pixel)', 'Los párrafos, ajustes y mensajes de Leónidas usan la fuente del sistema, más cómoda para leer.')}
             ${check('longWarnings', 'Avisos de flechas más largos', 'Un 50 % más de tiempo para reaccionar (útil con la voz).')}
-            ${check('narration', 'Leer en voz alta los mensajes', 'Leónidas lee las indicaciones del tutorial y de la campaña con la voz del navegador. Mientras habla, el micrófono no acepta órdenes.')}
           </section>
           <section aria-labelledby="set-keys">
             <h3 id="set-keys">Teclas</h3>
@@ -296,14 +295,14 @@ export class Screens {
       ask: `<p class="lead">${esc(personalize(LEONIDAS.voiceIdAsk, identity ?? 'unspecified'))}</p>
         <div class="voiceid-actions">${btn('listen', 'Identificar mi voz', { primary: true, icon: 5, auto: true })}
           ${ally ? btn('continue', `Seguir como «${ally}»`) : ''}</div>`,
-      listening: `<p class="lead">Escuchando… di en voz alta: <b>«${esc(LEONIDAS.voiceIdPhrase)}»</b></p>
+      listening: `<p class="lead">Escuchando… di <b>cualquier palabra</b> en voz alta (por ejemplo, tu nombre o «¡Esparta!»).</p>
         <div class="voiceid-meter" role="progressbar" aria-label="Voz oída" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span data-voiceid-bar></span></div>
-        <p class="voice-note" role="status" aria-live="polite" data-voiceid-note>Habla con tu tono normal, como si dieras una orden.</p>`,
+        <p class="voice-note" role="status" aria-live="polite" data-voiceid-note>Habla con tu tono normal.</p>`,
       done: `<p class="lead voiceid-result">${heard ? 'Te reconozco por la voz' : 'De acuerdo'}: Leónidas te tratará de <b>«${esc(ally ?? '')}»</b>.</p>
         <div class="voiceid-actions">${btn('continue', 'Comenzar', { primary: true, auto: true })}${btn('listen', 'Repetir', { icon: 5 })}</div>
         <p class="voiceid-fix">¿No es correcto? Elige cómo quieres que te trate:</p>
         <div class="btn-grid voiceid-picks">${picks}</div>`,
-      retry: `<p class="lead">No te he oído lo suficiente. Acércate al micrófono y di la frase completa, en voz alta.</p>
+      retry: `<p class="lead">No te he oído lo suficiente. Acércate al micrófono y di una palabra en voz alta.</p>
         <div class="voiceid-actions">${btn('listen', 'Intentar de nuevo', { primary: true, icon: 5, auto: true })}</div>
         <p class="voiceid-fix">O elige cómo quieres que te trate:</p>
         <div class="btn-grid voiceid-picks">${picks}</div>`,
@@ -329,7 +328,7 @@ export class Screens {
     const pct = Math.round(fraction * 100);
     bar.style.width = `${pct}%`;
     bar.parentElement.setAttribute('aria-valuenow', String(pct));
-    if (pct >= 100) this.el.querySelector('[data-voiceid-note]').textContent = 'Te oigo bien. Termina la frase…';
+    if (pct >= 100) this.el.querySelector('[data-voiceid-note]').textContent = 'Te oigo bien.';
   }
 
   /** Resultado de la prueba de voz dentro de Ajustes. */

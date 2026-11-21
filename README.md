@@ -47,7 +47,7 @@ Puedes jugar la **campaña** (cinco oleadas y un enfrentamiento final contra Jer
   </tr>
   <tr>
     <td><b>Escudos arriba.</b> Cada lluvia de flechas se anuncia con una cuenta atrás. Con los escudos alzados, las flechas rebotan sin hacer daño.</td>
-    <td><b>Tutorial.</b> Nueve pasos guiados por Leónidas, uno para cada orden, que no se pueden perder. Las indicaciones se pueden escuchar en voz alta.</td>
+    <td><b>Tutorial.</b> Nueve pasos guiados por Leónidas, uno para cada orden, que no se pueden perder. Las indicaciones aparecen como texto en pantalla.</td>
   </tr>
   <tr>
     <td><img src="media/result.png" alt="Pantalla de resultado: «La línea resiste», puntuación, estadísticas y tabla por oleada"></td>
@@ -68,7 +68,7 @@ Puedes jugar la **campaña** (cinco oleadas y un enfrentamiento final contra Jer
 - **Campaña con jefe final.** Cinco oleadas de dificultad creciente y un enfrentamiento con Jerjes I en dos fases, con decretos que exigen respuestas distintas.
 - **Escenario histórico «La senda de Anopea».** Dos frentes, la orden «media vuelta» y un escenario más amplio con el sendero bajando por el monte Calídromo.
 - **Tres niveles de dificultad.** En Fácil, en la senda de Anopea te atacan por un solo lado cada vez y la falange gira sola, pensado para jugar con la voz.
-- **Leónidas como comandante.** Parte de batalla, órdenes en cada oleada, avisos cuando la línea flaquea y lectura en voz alta opcional.
+- **Leónidas como comandante.** Parte de batalla, órdenes en cada oleada, y avisos cuando la línea flaquea, siempre por escrito en su panel.
 - **Luz que cambia con la batalla.** Amanecer, mediodía, atardecer y noche, con estrellas, luna y antorchas en el muro de los focenses.
 - **Pixel art y música originales.** Escenario por capas, animaciones de combate, logotipo propio y música sintetizada que crece con la intensidad.
 - **Móvil y tableta.** Diseño táctil en horizontal y en vertical, pantalla completa y vibración.
@@ -101,7 +101,7 @@ Las teclas se pueden cambiar en **Ajustes**.
 ## Voz y privacidad
 
 - El reconocimiento de voz lo hace el propio navegador (Web Speech API). El juego solo compara lo que entiende con una lista cerrada de órdenes y nunca ejecuta una frase ambigua.
-- Para saber cómo dirigirse a ti, el juego estima el **tono** de tu voz en el momento, con Web Audio. **No se graba, no se guarda ni se envía audio**, y el resultado tampoco se guarda. Si prefieres que no se analice, fija el trato en **Ajustes**.
+- Para saber cómo dirigirse a ti, antes de la batalla dices **cualquier palabra** y el juego estima el **tono** de tu voz en el momento, con Web Audio. **No se graba, no se guarda ni se envía audio**, y el resultado tampoco se guarda. Si prefieres que no se analice, fija el trato en **Ajustes**.
 - El micrófono solo se pide cuando tú lo activas, y el juego no tiene servidor propio.
 - Sin micrófono o sin permiso, todo sigue funcionando con el teclado y los botones.
 

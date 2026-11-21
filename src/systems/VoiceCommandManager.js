@@ -129,22 +129,8 @@ export class VoiceCommandManager {
   }
 
   /** Procesa una lista de alternativas [{transcript, confidence}] de un resultado final. */
-  /**
-   * Mientras el juego lee algo en voz alta, lo que oiga el micrófono se ignora:
-   * la propia narración no debe convertirse en órdenes. Tras terminar se espera
-   * un margen corto, porque el reconocedor entrega los resultados con retraso.
-   */
-  setSuspended(on, graceMs = 800) {
-    this.suspended = on;
-    if (!on) this.ignoreUntil = this.now() + graceMs;
-  }
-
   handleAlternatives(alternatives) {
     const first = alternatives[0] ?? { transcript: '', confidence: 0 };
-    if (this.suspended || this.now() < (this.ignoreUntil ?? -Infinity)) {
-      this.onHeard({ transcript: first.transcript, confidence: first.confidence, status: 'narration' });
-      return null;
-    }
     for (const alt of alternatives) {
       const match = matchCommand(alt.transcript);
       if (!match.id) continue;

@@ -471,8 +471,7 @@ html, body { overscroll-behavior: none; }
 .commander .tutorial-portrait { width: 48px; height: 48px; }
 .commander-text { margin: 2px 0 0; font-family: var(--text); font-size: 15px; line-height: 1.35; }
 .commander-in { animation: alert-in 0.2s ease-out; }
-.narration-btn { min-width: 40px; justify-content: center; }
-.btn[aria-pressed='true'].btn-small, .narration-btn[aria-pressed='true'] { border-color: var(--ok); background: #2c3a22; }
+.btn[aria-pressed='true'].btn-small { border-color: var(--ok); background: #2c3a22; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ── Marco pixel de los paneles (images/ui/panel-frame.png, 9-slice de 5 px a ×2) ── */
@@ -594,7 +593,6 @@ html, body { overscroll-behavior: none; }
   .tutorial-text { font-size: 13px; line-height: 1.3; }
   .tutorial-hint { font-size: 12px; margin-top: 2px; }
   .commander { bottom: 4px; gap: 8px; padding: 4px 8px; grid-template-columns: auto 1fr auto; }
-  .commander .narration-btn { min-width: 32px; padding: 4px 6px; }
   .commander .tutorial-portrait { width: 30px; height: 30px; }
   .commander-text { font-size: 12px; line-height: 1.25; }
   /* Menú y pantallas: más compactos para caber en poca altura. */

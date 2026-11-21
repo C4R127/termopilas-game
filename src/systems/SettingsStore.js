@@ -34,7 +34,6 @@ export const DEFAULT_SETTINGS = Object.freeze({
     largeText: false,
     plainText: false, // texto corrido con la fuente del sistema en lugar de la pixel
     longWarnings: false, // avisos de flechas un 50 % más largos
-    narration: false, // leer en voz alta las indicaciones del tutorial y los mensajes de Leónidas
   },
   keys: { SHIELDS: 'Digit1', SPEARS: 'Digit2', PUSH: 'Digit3', RELIEF: 'Digit4', TURN: 'Digit5', PAUSE: 'KeyP', SPEED: 'KeyT', VOICE: 'KeyV', MUTE: 'KeyM' },
   voice: { lang: VOICE.lang, sensitivity: 'normal' },
