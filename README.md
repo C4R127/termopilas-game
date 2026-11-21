@@ -134,7 +134,7 @@ src/
 ├─ config/         valores de diseño (balance.js), Phaser (gameConfig.js) y luces (lighting.js)
 ├─ scenes/         menú, tutorial, batalla, senda de Anopea, HUD, resultado, fondo e iluminación
 ├─ entities/       la falange (reglas y dibujo), los enemigos y Jerjes
-├─ systems/        simulación de la batalla, órdenes, oleadas, Jerjes, voz, tono, narración, audio
+├─ systems/        simulación de la batalla, órdenes, oleadas, Jerjes, voz, tono, audio
 ├─ data/           órdenes, oleadas, escenario de Anopea, Jerjes y mensajes de Leónidas
 ├─ ui/             HUD, pantallas, tutorial y panel de Leónidas
 └─ styles/         estilos
