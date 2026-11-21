@@ -431,7 +431,7 @@ html, body { overscroll-behavior: none; }
 .voiceid-result { font-size: 18px; color: var(--cream) !important; }
 .voiceid-result b { color: var(--bronze-light); }
 .voiceid-fix { margin: 6px 0 4px; font-size: 14px; color: var(--muted); }
-.voiceid-picks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.voiceid-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 /* ── Panel del tutorial ─────────────────────────────────────────────────── */
 .tutorial {

@@ -3,16 +3,12 @@ import { identityFromPitch } from './PlayerProfile.js';
 /**
  * Estimación del tono de voz de quien juega, para que Leónidas sepa cómo
  * dirigirse a esa persona. Todo ocurre en memoria, fotograma a fotograma: no se
- * graba, no se guarda y no se envía audio. Solo cuentan los fotogramas cercanos
- * a una frase que el reconocedor acaba de oír (las órdenes), así la música del
- * juego o la voz de Leónidas no se confunden con la del jugador.
+ * graba, no se guarda y no se envía audio. Solo se usa en el panel «Antes de
+ * la batalla», mientras el jugador dice una palabra.
  */
 
 export const PITCH = {
   frameMs: 50, // cada cuánto se analiza un fragmento del micrófono
-  windowMs: 3000, // fotogramas anteriores a una frase reconocida que se le atribuyen
-  minFrames: 30, // fotogramas con voz necesarios para decidir (≈1,5 s de habla)
-  minUtterances: 2, // y al menos dos frases distintas
   panelMaxMs: 6000, // panel de identificación: escucha como mucho esto…
   panelSilenceMs: 700, // …o hasta que, tras oír voz suficiente, el jugador se calla
   panelMinFrames: 8, // fotogramas con voz necesarios (≈0,4 s: basta una palabra)
@@ -58,50 +54,6 @@ export function estimatePitch(buf, sampleRate, { minHz = PITCH.minHz, maxHz = PI
     }
   }
   return null;
-}
-
-/** Junta los tonos de las frases del jugador y decide la forma de trato. */
-export class PitchProfile {
-  constructor() {
-    this.reset();
-  }
-
-  reset() {
-    this.frames = []; // { t, hz } aún sin atribuir
-    this.samples = []; // tonos atribuidos a frases del jugador
-    this.utterances = 0;
-  }
-
-  addFrame(t, hz) {
-    this.frames.push({ t, hz });
-    // Solo hace falta conservar la ventana de atribución.
-    while (this.frames.length && this.frames[0].t < t - PITCH.windowMs) this.frames.shift();
-  }
-
-  /** El reconocedor acaba de oír una frase: los fotogramas recientes son del jugador. */
-  commitUtterance(now) {
-    const recent = this.frames.filter((f) => f.t >= now - PITCH.windowMs && f.t <= now);
-    this.frames = [];
-    if (!recent.length) return;
-    this.samples.push(...recent.map((f) => f.hz));
-    this.utterances++;
-  }
-
-  get ready() {
-    return this.samples.length >= PITCH.minFrames && this.utterances >= PITCH.minUtterances;
-  }
-
-  get median() {
-    if (!this.samples.length) return NaN;
-    const sorted = [...this.samples].sort((a, b) => a - b);
-    const mid = sorted.length >> 1;
-    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  }
-
-  /** Forma de trato, o null si aún no hay voz suficiente. */
-  decide() {
-    return this.ready ? identityFromPitch(this.median) : null;
-  }
 }
 
 /**

@@ -1,12 +1,11 @@
 /**
- * Cómo se dirige Leónidas a quien juega. En automático se estima por el tono
- * de la voz al dar las órdenes (ver PitchSensor); también se puede fijar en
- * Ajustes. Solo cambia la forma de trato: «aliada», «aliado» o «estratega».
+ * Cómo se dirige Leónidas a quien juega: «aliada» o «aliado». Antes de la
+ * batalla se estima por el tono de la voz en el panel «Antes de la batalla»
+ * (ver PitchSensor), o se elige con un botón; también se puede fijar en Ajustes.
  */
 export const IDENTITIES = {
   female: { label: 'Aliada', ally: 'aliada' },
   male: { label: 'Aliado', ally: 'aliado' },
-  unspecified: { label: 'Estratega', ally: 'estratega' },
 };
 
 /** Opciones del ajuste «Leónidas se dirige a ti como». */
@@ -14,33 +13,31 @@ export const ADDRESS_OPTIONS = {
   auto: 'Automático (por el tono de voz)',
   female: 'Aliada',
   male: 'Aliado',
-  unspecified: 'Estratega',
 };
 
 /**
- * Umbrales de la frecuencia fundamental mediana (Hz). Las voces graves suelen
- * quedar por debajo de 155 Hz y las agudas por encima de 175 Hz; entre medias
- * el tono no basta para decidir y Leónidas usa la forma neutra.
+ * Umbral de la frecuencia fundamental mediana (Hz): las voces más graves que
+ * esto se tratan como «aliado» y las más agudas como «aliada». Está entre los
+ * tonos habituales de voces graves (unos 85–155 Hz) y agudas (unos 165–255 Hz);
+ * si no acierta, el jugador lo corrige con un botón.
  */
-export const PITCH_THRESHOLDS = { low: 155, high: 175 };
+export const PITCH_SPLIT_HZ = 165;
 
-/** Forma de trato a partir del tono medio de la voz. */
+/** Forma de trato a partir del tono medio de la voz (null si no hay tono). */
 export function identityFromPitch(medianHz) {
-  if (!Number.isFinite(medianHz)) return 'unspecified';
-  if (medianHz < PITCH_THRESHOLDS.low) return 'male';
-  if (medianHz > PITCH_THRESHOLDS.high) return 'female';
-  return 'unspecified';
+  if (!Number.isFinite(medianHz)) return null;
+  return medianHz < PITCH_SPLIT_HZ ? 'male' : 'female';
 }
 
-/** Trato efectivo: el fijado en Ajustes o, en automático, el detectado (neutro hasta entonces). */
+/** Trato efectivo: el fijado en Ajustes o, en automático, el decidido antes de la batalla (null si aún no hay). */
 export function resolveIdentity(address, detected) {
   if (IDENTITIES[address]) return address;
-  return IDENTITIES[detected] ? detected : 'unspecified';
+  return IDENTITIES[detected] ? detected : null;
 }
 
-/** Sustituye {aliado} / {Aliado} por la forma de trato. */
-export function personalize(text, identity = 'unspecified') {
-  const ally = (IDENTITIES[identity] ?? IDENTITIES.unspecified).ally;
+/** Sustituye {aliado} / {Aliado} por la forma de trato («aliado/a» solo si aún no se conoce). */
+export function personalize(text, identity) {
+  const ally = IDENTITIES[identity]?.ally ?? 'aliado/a';
   return String(text)
     .replaceAll('{aliado}', ally)
     .replaceAll('{Aliado}', ally[0].toUpperCase() + ally.slice(1));

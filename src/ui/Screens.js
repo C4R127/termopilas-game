@@ -272,9 +272,9 @@ export class Screens {
             <label class="field">Leónidas se dirige a ti como
               <select data-section="player" data-key="address">${Object.entries(ADDRESS_OPTIONS).map(([v, l]) => `<option value="${v}" ${v === s.get('player', 'address') ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
             <p class="fineprint">El reconocimiento lo hace el navegador y puede depender de sus servicios en línea. El juego no graba
-              ni guarda audio: compara el texto reconocido con la lista cerrada de órdenes y, en automático, estima el tono de tu voz
-              mientras das las primeras órdenes para elegir entre «aliada» y «aliado» («estratega» si el tono no basta). Ese cálculo
-              se hace en el momento y no se guarda; elige una forma fija si prefieres que no se analice.</p>
+              ni guarda audio: compara el texto reconocido con la lista cerrada de órdenes. En automático, antes de cada batalla
+              estima el tono de tu voz para elegir entre «aliada» y «aliado»; ese cálculo se hace en el momento y no se guarda.
+              Elige una forma fija si prefieres que no se analice.</p>
           </section>
         </div>
         <div class="btn-row"><button class="btn btn-primary" type="button" data-action="back" data-autofocus>Volver</button></div>
@@ -283,7 +283,8 @@ export class Screens {
 
   /**
    * Antes de la batalla: Leónidas identifica a quien juega por el tono de su voz.
-   * phase: 'ask' (instrucciones), 'listening', 'done', 'retry' (no se oyó bastante) o 'error' (sin micrófono).
+   * phase: 'ask' (instrucciones), 'listening', 'done', 'retry' (no se oyó bastante), 'error' (sin micrófono)
+   * o 'choose' (el navegador no puede analizar la voz). Siempre termina con «aliada» o «aliado».
    */
   voiceId({ phase = 'ask', identity = null, heard = false } = {}) {
     const portrait = `${import.meta.env.BASE_URL}assets/images/ui/leonidas.png`;
@@ -292,9 +293,13 @@ export class Screens {
       `<button class="btn ${primary ? 'btn-primary' : ''}" type="button" data-action="voiceid" data-do="${action}" ${id ? `data-id="${id}"` : ''} ${auto ? 'data-autofocus' : ''}>${icon != null ? `<i class="icon" data-icon="${icon}" aria-hidden="true"></i>` : ''}${esc(label)}</button>`;
     const picks = Object.entries(IDENTITIES).map(([id, d]) => btn('pick', d.label, { id })).join('');
     const body = {
-      ask: `<p class="lead">${esc(personalize(LEONIDAS.voiceIdAsk, identity ?? 'unspecified'))}</p>
+      ask: `<p class="lead">${esc(LEONIDAS.voiceIdAsk)}</p>
         <div class="voiceid-actions">${btn('listen', 'Identificar mi voz', { primary: true, icon: 5, auto: true })}
-          ${ally ? btn('continue', `Seguir como «${ally}»`) : ''}</div>`,
+          ${ally ? btn('continue', `Seguir como «${ally}»`) : ''}</div>
+        <p class="voiceid-fix">O elige directamente cómo quieres que te trate:</p>
+        <div class="btn-grid voiceid-picks">${picks}</div>`,
+      choose: `<p class="lead">Este navegador no puede analizar la voz. Elige cómo quieres que te trate Leónidas:</p>
+        <div class="btn-grid voiceid-picks">${picks}</div>`,
       listening: `<p class="lead">Escuchando… di <b>cualquier palabra</b> en voz alta (por ejemplo, tu nombre o «¡Esparta!»).</p>
         <div class="voiceid-meter" role="progressbar" aria-label="Voz oída" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span data-voiceid-bar></span></div>
         <p class="voice-note" role="status" aria-live="polite" data-voiceid-note>Habla con tu tono normal.</p>`,
@@ -306,7 +311,7 @@ export class Screens {
         <div class="voiceid-actions">${btn('listen', 'Intentar de nuevo', { primary: true, icon: 5, auto: true })}</div>
         <p class="voiceid-fix">O elige cómo quieres que te trate:</p>
         <div class="btn-grid voiceid-picks">${picks}</div>`,
-      error: `<p class="lead">No se pudo usar el micrófono (permiso denegado o no hay ninguno). Elige cómo quieres que te trate o salta este paso.</p>
+      error: `<p class="lead">No se pudo usar el micrófono (permiso denegado o no hay ninguno). Elige cómo quieres que te trate:</p>
         <div class="btn-grid voiceid-picks">${picks}</div>`,
     }[phase];
     this.#show('voiceid', `
@@ -316,8 +321,8 @@ export class Screens {
           <div><h2>Antes de la batalla</h2>${body}</div>
         </div>
         <p class="fineprint">El tono de tu voz se analiza en el momento, en este navegador: no se graba, no se guarda ni se envía audio.
-          Solo sirve para que Leónidas te llame «aliada» o «aliado» (o «estratega» si el tono no basta). Puedes fijarlo en Ajustes.</p>
-        <div class="btn-row">${phase === 'listening' ? '' : `${btn('skip', 'Saltar')}${btn('cancel', 'Volver al menú')}`}</div>
+          Solo sirve para que Leónidas te llame «aliada» o «aliado». Puedes fijarlo en Ajustes.</p>
+        <div class="btn-row">${phase === 'listening' ? '' : btn('cancel', 'Volver al menú')}</div>
       </div>`);
   }
 

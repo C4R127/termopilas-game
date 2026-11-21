@@ -31,7 +31,7 @@ Puedes jugar la **campaña** (cinco oleadas y un enfrentamiento final contra Jer
   </tr>
   <tr>
     <td><b>La senda de Anopea.</b> Efialtes guía a los persas por la montaña y te atacan por los dos lados. Ordena «media vuelta» y la cámara gira con la falange.</td>
-    <td><b>Antes de la batalla.</b> Leónidas escucha tu voz y decide cómo dirigirse a ti: «aliada», «aliado» o «estratega». Puedes corregirlo o saltarlo.</td>
+    <td><b>Antes de la batalla.</b> Leónidas escucha tu voz y decide cómo dirigirse a ti: «aliada» o «aliado». Puedes corregirlo o elegirlo con un botón.</td>
   </tr>
 </table>
 
@@ -151,7 +151,7 @@ media/             capturas de este README
 - **Phaser donde aporta.** Escenas, animaciones, tweens, partículas y Arcade Physics para las flechas en parábola y los enemigos que caen al mar.
 - **Dos frentes con las mismas reglas.** Los enemigos de la retaguardia usan una coordenada reflejada, así el movimiento, el contacto, las lanzas y el empuje funcionan igual a los dos lados.
 - **Iluminación.** Una matriz de color sobre la cámara da cada momento del día. El fuego se dibuja en una segunda cámara sin corrección, para que la noche no lo vuelva azul.
-- **Tono de voz.** Autocorrelación sobre fragmentos de 50 ms y la mediana de lo oído. Por debajo de 155 Hz, «aliado»; por encima de 175 Hz, «aliada»; entre medias, «estratega». El tono no siempre coincide con cómo se identifica cada persona, y por eso existen la franja neutra y la corrección manual.
+- **Tono de voz.** Autocorrelación sobre fragmentos de 50 ms y la mediana de lo oído. Por debajo de 165 Hz, «aliado»; desde 165 Hz, «aliada». El tono no siempre coincide con cómo se identifica cada persona, y por eso el resultado se puede corregir con un botón o fijar en Ajustes.
 - **Ajustes** guardados en el navegador, con teclas reasignables, y un diseño táctil resuelto con CSS, sin una versión aparte.
 
 </details>

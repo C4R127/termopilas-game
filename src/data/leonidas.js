@@ -26,8 +26,6 @@ export const LEONIDAS = {
   },
   bossPhase: '¡Jerjes se ha levantado de su trono! Teme por su ejército: no cedáis ahora.',
   victoryXerxes: 'Jerjes ordena la retirada. Hoy el paso es nuestro, {aliado}.',
-  // Tras las primeras órdenes de voz, cuando ya sabe cómo dirigirse al jugador por el tono.
-  voiceRecognized: 'Ya reconozco tu voz, {aliado}. Sigue dando así las órdenes.',
   // Panel previo a la batalla: identificación por el tono de voz.
   voiceIdAsk: 'Antes de formar, déjame oír tu voz. Pulsa el botón y di cualquier palabra en voz alta.',
 };
