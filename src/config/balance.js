@@ -33,6 +33,9 @@ export const VIEW = { west: 112, shift: 100, panMs: 700 };
 /** Paralaje: el cielo y la lejanía se desplazan menos que el paso (solo se nota cuando la cámara se mueve). */
 export const PARALLAX = { sky: 0.6, far: 0.8 };
 
+/** Velocidad del tiempo en batalla (botón del HUD o tecla): se recorre en este orden. */
+export const TIME_SPEEDS = [1, 2, 4];
+
 /** Media vuelta y flanco desprotegido (escenario de Anopea). */
 export const FLANK = {
   turnMs: 600, // la formación tarda en girar: durante ese tiempo no acepta otra orden

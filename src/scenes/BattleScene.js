@@ -107,8 +107,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   update(_time, delta) {
-    this.sim.update(delta);
-    this.afterUpdate?.(delta);
+    // Con el tiempo acelerado, la simulación recibe más milisegundos por fotograma.
+    const scaled = delta * (this.app.timeScale ?? 1);
+    this.sim.update(scaled);
+    this.afterUpdate?.(scaled);
     const now = this.app.state.simTime;
     this.hpBars.clear();
     for (const rec of this.sim.enemies) {
@@ -290,7 +292,22 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Velocidad del tiempo (×1, ×2, ×4): la simulación la toma en update(); aquí se
+   * aplica al dibujo para que animaciones, tweens, temporizadores, partículas y
+   * físicas de las flechas vayan al mismo ritmo.
+   */
+  applyTimeScale(speed) {
+    this.time.timeScale = speed;
+    this.tweens.timeScale = speed;
+    this.anims.globalTimeScale = speed;
+    // Al cerrar la escena, el mundo de físicas ya se ha apagado.
+    if (this.physics?.world) this.physics.world.timeScale = 1 / speed; // en Arcade, menos es más rápido
+    for (const fx of Object.values(this.fx ?? {})) fx.timeScale = speed;
+  }
+
   #cleanup() {
+    this.applyTimeScale(1); // el ritmo de las animaciones es global: el menú vuelve a ×1
     this.offs.forEach((off) => off());
     this.sim.destroy();
     if (this.app.sim === this.sim) this.app.sim = null;

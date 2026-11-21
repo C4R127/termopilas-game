@@ -4,7 +4,7 @@ import { ADDRESS_OPTIONS } from './PlayerProfile.js';
 const STORAGE_KEY = 'termopilas.settings.v1';
 
 // Acciones que se pueden asignar a una tecla (sección 7.5: remapear las teclas).
-export const KEY_ACTIONS = ['SHIELDS', 'SPEARS', 'PUSH', 'RELIEF', 'TURN', 'PAUSE', 'VOICE', 'MUTE'];
+export const KEY_ACTIONS = ['SHIELDS', 'SPEARS', 'PUSH', 'RELIEF', 'TURN', 'PAUSE', 'SPEED', 'VOICE', 'MUTE'];
 export const KEY_ACTION_LABELS = {
   SHIELDS: 'Escudos',
   SPEARS: 'Lanzas',
@@ -12,6 +12,7 @@ export const KEY_ACTION_LABELS = {
   RELIEF: 'Relevo',
   TURN: 'Media vuelta (Anopea)',
   PAUSE: 'Pausa / Continuar',
+  SPEED: 'Velocidad del tiempo (×1, ×2, ×4)',
   VOICE: 'Micrófono',
   MUTE: 'Silenciar sonido',
 };
@@ -35,7 +36,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     longWarnings: false, // avisos de flechas un 50 % más largos
     narration: false, // leer en voz alta las indicaciones del tutorial y los mensajes de Leónidas
   },
-  keys: { SHIELDS: 'Digit1', SPEARS: 'Digit2', PUSH: 'Digit3', RELIEF: 'Digit4', TURN: 'Digit5', PAUSE: 'KeyP', VOICE: 'KeyV', MUTE: 'KeyM' },
+  keys: { SHIELDS: 'Digit1', SPEARS: 'Digit2', PUSH: 'Digit3', RELIEF: 'Digit4', TURN: 'Digit5', PAUSE: 'KeyP', SPEED: 'KeyT', VOICE: 'KeyV', MUTE: 'KeyM' },
   voice: { lang: VOICE.lang, sensitivity: 'normal' },
   progress: { tutorialDone: false },
   game: { difficulty: 'normal', lighting: 'auto' },

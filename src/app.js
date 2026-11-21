@@ -1,3 +1,4 @@
+import { TIME_SPEEDS } from './config/balance.js';
 import { getCommand } from './data/commands.js';
 import { LEONIDAS } from './data/leonidas.js';
 import { AudioManager } from './systems/AudioManager.js';
@@ -50,6 +51,7 @@ export function createApp() {
     voiceTest: false, // prueba de voz desde Ajustes
     detectedIdentity: null, // trato estimado por el tono de voz en esta sesión (no se guarda)
     voiceDecided: false, // en esta batalla ya se decidió el trato: se deja de analizar el tono
+    timeScale: 1, // velocidad del tiempo en batalla (×1, ×2, ×4); cada batalla empieza a ×1
 
     get inBattle() {
       return BATTLE_SCENES.includes(state.currentScene) && state.phase === 'playing';
@@ -231,6 +233,7 @@ export function createApp() {
       hud.setWaveCaption(key === 'TutorialScene' ? 'Tutorial' : 'Oleada');
       hud.setBoss(null);
       hud.setTurnAvailable(key === 'AnopaeaScene');
+      this.setSpeed(1);
       hud.el.lastCommand.textContent = 'Última orden: —';
       tutorialView.show(key === 'TutorialScene');
       audio.playMusic('battle');
@@ -287,6 +290,21 @@ export function createApp() {
       audio.unlock();
       if (!this.inBattle) return;
       bus.emit(EVENTS.COMMAND_RECEIVED, { id, source, transcript });
+    },
+
+    /** Pasa a la siguiente velocidad del tiempo (×1 → ×2 → ×4 → ×1). */
+    cycleSpeed() {
+      if (!this.inBattle || state.isPaused) return;
+      const next = TIME_SPEEDS[(TIME_SPEEDS.indexOf(this.timeScale) + 1) % TIME_SPEEDS.length];
+      this.setSpeed(next);
+      const tip = next > 1 && voice.wanted ? ': las órdenes de voz tienen menos margen' : '';
+      hud.alert(next === 1 ? 'Velocidad normal' : `Tiempo acelerado ×${next}${tip}`, 'info', 1600);
+    },
+
+    setSpeed(speed) {
+      this.timeScale = speed;
+      hud.setSpeed(speed);
+      this.game?.scene.getScene(this.battleKey)?.applyTimeScale?.(speed);
     },
 
     togglePause(source) {

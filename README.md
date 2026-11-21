@@ -85,6 +85,7 @@ Puedes jugar la **campaña** (cinco oleadas y un enfrentamiento final contra Jer
 | **Relevo** | «relevo», «cambio» | 4 | La reserva toma la primera línea y la falange recupera resistencia. |
 | **Media vuelta** | «media vuelta», «retaguardia» | 5 | Solo en la senda de Anopea: encara el otro lado del paso. |
 | Pausa / continuar | «pausa» / «continuar» | P o Esc | Detiene la partida. |
+| Velocidad del tiempo | — | T | Acelera la batalla a ×2 o ×4 (y vuelve a ×1) para no esperar entre oleadas. También con el botón » de la barra superior. |
 | Micrófono / sonido | — | V / M | Activa o silencia. |
 
 Las teclas se pueden cambiar en **Ajustes**.

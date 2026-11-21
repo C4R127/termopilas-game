@@ -26,6 +26,7 @@ window.addEventListener('keydown', (e) => {
   if (!action) return;
   e.preventDefault();
   if (action === 'VOICE') app.toggleVoice();
+  else if (action === 'SPEED') app.cycleSpeed();
   else if (action === 'MUTE') {
     const muted = !app.settings.get('audio', 'muted');
     app.settings.set('audio', 'muted', muted);
@@ -42,6 +43,7 @@ document.getElementById('hud-bottom').addEventListener('click', (e) => {
   if (btn) app.sendCommand(btn.dataset.cmd, 'button');
 });
 document.getElementById('pause-btn').addEventListener('click', () => app.togglePause('button'));
+document.getElementById('speed-btn').addEventListener('click', () => app.cycleSpeed());
 
 // Pantalla completa (sobre todo para móviles y tabletas), si el navegador la ofrece.
 const fsBtn = document.getElementById('fs-btn');

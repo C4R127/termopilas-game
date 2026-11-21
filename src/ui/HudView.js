@@ -178,6 +178,15 @@ export class HudView {
     for (const [id, btn] of Object.entries(this.buttons)) btn.querySelector('kbd').textContent = labelOf(keys[id]);
     this.micBtn.querySelector('kbd').textContent = labelOf(keys.VOICE);
     document.querySelector('#pause-btn kbd').textContent = labelOf(keys.PAUSE);
+    document.querySelector('#speed-btn kbd').textContent = labelOf(keys.SPEED);
+  }
+
+  /** Botón de velocidad del tiempo: muestra ×1, ×2 o ×4 y se resalta cuando está acelerado. */
+  setSpeed(speed) {
+    const btn = document.getElementById('speed-btn');
+    btn.querySelector('.speed-label').textContent = `×${speed}`;
+    btn.dataset.fast = String(speed > 1);
+    btn.setAttribute('aria-label', `Velocidad del tiempo: ×${speed}`);
   }
 
   /** La orden de media vuelta solo aparece en el escenario de la senda de Anopea. */
